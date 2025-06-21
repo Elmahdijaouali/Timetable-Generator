@@ -1,0 +1,312 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCloudArrowUp,
+  faWandMagicSparkles,
+  faEdit,
+  faCalendar,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
+import { NavLink } from "react-router-dom";
+import ButtonTelechargementEmploisActif from "../../../components/ButtonTelechargementEmploisActif";
+import { useEffect, useRef, useState } from "react";
+import PopupDeTelechargement from "../../../components/PopupDeTelechargement";
+import PopupSuccess from "../../../components/PopupSuccess";
+import PopupError from "../../../components/PopupError";
+import { handleNotification } from "../../../utils/notification";
+import api from "../../../api/apiConfig";
+import { telechargeToutLesEmploisActifDesGroupesPngSurZip } from "../../../utils/telechargeToutLesEmploisActifDesGroupesPngSurZip";
+import { telechargeToutLesEmploisActifDesFormateursPngSurZip } from "../../../utils/telechargeToutLesEmploisActifDesFormateursPngSurZip";
+import { telechargeToutLesEmploisActifDesSallesPngSurZip } from "../../../utils/telechargeToutLesEmploisActifDesSallesPngSurZip";
+
+interface TimetableGroup {
+  id: number;
+}
+
+interface TimetableFormateur {
+  mle_formateur: string;
+}
+
+interface TimetableSalle {
+  id: number;
+}
+
+export default function GenererEmploisDuTemps() {
+  const [loadingGenerate, setLoadingGenerate] = useState(false);
+  const [valide_a_partir_de, setValide_a_partir_de] = useState("");
+  const [errors, setErrors] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [messageSuccess, setMessageSuccess] = useState("");
+  const [afficherPopupSuccess, setAfficherPopupSuccess] = useState(false);
+  const [afficherPopupError, setAfficherPopupError] = useState(false);
+  const [fileKey, setFileKey] = useState(Date.now());
+  const fileinputRef = useRef<HTMLInputElement>(null);
+  const [afficherPopup, setAfficherPopup] = useState(false);
+  const [valuePopup, setValuePopup] = useState("png");
+  const [handleLogicTelechargement, setHandleLogicTelechargement] = useState(
+    () => () => {}
+  );
+  const [timetablesActiveForGroups, setTimetableActiveForGroups] = useState<
+    TimetableGroup[]
+  >([]);
+  const [timetableActiveFormateurs, setTimetableActiveFormateurs] = useState<
+    TimetableFormateur[]
+  >([]);
+  const [timetableActiveSalles, setTimetableActiveSalles] = useState<
+    TimetableSalle[]
+  >([]);
+
+  const handleGenerateEmploisDuTemps = async () => {
+    try {
+      setLoadingGenerate(true);
+      const res = await api.post("/generate-timetable", {
+        valide_a_partir_de: valide_a_partir_de,
+      });
+
+      if (res && res.data) {
+        setAfficherPopupSuccess(true);
+        setMessageSuccess(res.data.message);
+        handleNotification(
+          "Générate des emplois du temps",
+          "succès générate des emplois du temps "
+        );
+      }
+      setLoadingGenerate(false);
+    } catch (err: any) {
+      console.log(err);
+      setLoadingGenerate(false);
+      setAfficherPopupError(true);
+      setErrors(err.response?.data.errors);
+    }
+  };
+
+  const handleTelechargementDesEmploisDuTempsActifDesGroupes = () => {
+    setAfficherPopup(true);
+    setHandleLogicTelechargement(() => () => {
+      if (valuePopup == "png") {
+        telechargeToutLesEmploisActifDesGroupesPngSurZip(
+          timetablesActiveForGroups
+        );
+      }
+    });
+  };
+
+  const handleTelechargementDesEmploisDuTempsActifDesFormateurs = () => {
+    setAfficherPopup(true);
+    setHandleLogicTelechargement(() => () => {
+      if (valuePopup == "png") {
+        telechargeToutLesEmploisActifDesFormateursPngSurZip(
+          timetableActiveFormateurs
+        );
+      }
+    });
+  };
+
+  const handleTelechargementDesEmploisDuTempsActifDesSalles = () => {
+    setAfficherPopup(true);
+    setHandleLogicTelechargement(() => () => {
+      if (valuePopup == "png") {
+        telechargeToutLesEmploisActifDesSallesPngSurZip(timetableActiveSalles);
+      }
+    });
+  };
+
+  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const formData = new FormData();
+      if (e.target.files) {
+        formData.append("file", e.target.files[0]);
+      }
+
+      setLoading(true);
+
+      const res = await api.post("/import-data", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res && res.data && res.data.message) {
+        setAfficherPopupSuccess(true);
+        setMessageSuccess("succès la importation des données ");
+        handleNotification(
+          "Importation des donnée",
+          "succès la importation des données "
+        );
+      }
+      setLoading(false);
+    } catch (err: any) {
+      setLoading(false);
+      console.log("err", err);
+      if (err.response && err.response.data && err.response.data.errors) {
+        setErrors(err.response.data.errors);
+        setAfficherPopupError(true);
+      }
+
+      console.log(err);
+    } finally {
+      if (fileinputRef.current) {
+        fileinputRef.current.value = "";
+      }
+      setFileKey(Date.now());
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const res = await api.get("/timetables/groups");
+      if (res && res.data) {
+        setTimetableActiveForGroups(res.data);
+      }
+
+      const res2 = await api.get("/timetables/active/formateurs");
+      if (res2 && res2.data) {
+        setTimetableActiveFormateurs(res2.data);
+      }
+
+      const res3 = await api.get("/classrooms-timetable");
+      if (res3 && res3.data) {
+        setTimetableActiveSalles(res3.data);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (afficherPopupSuccess) {
+      setTimeout(() => {
+        setAfficherPopupSuccess(false);
+      }, 3000);
+    }
+    if (afficherPopupError) {
+      setTimeout(() => {
+        setAfficherPopupError(false);
+      }, 6000);
+    }
+  }, [afficherPopupSuccess, afficherPopupError]);
+
+  return (
+    <div className="lg:w-[96%] h-full lg:px-10 lg:py-5  p-5 ">
+      <h1 className="lg:text-3xl font-bold">
+        <FontAwesomeIcon className="mr-2 text-blue-500" icon={faCalendar} />
+        Générate des emplois du temps{" "}
+      </h1>
+
+      <div className="lg:mt-8 lg:my-10 my-5 flex justify-between">
+        <div>
+          <label htmlFor="" className="lg:text-xl">
+            valide a patir de
+          </label>
+          <input
+            type="date"
+            onChange={(e) => setValide_a_partir_de(e.target.value)}
+            value={valide_a_partir_de}
+            className="ml-3 lg:text-xl bg-gray-100 p-2 rounded-lg lg:px-8  "
+          />
+        </div>
+      </div>
+      <div className="">
+        <div className="pb-5 xl:w-[78] lg:w-[83%] flex gap-10 justify-between">
+          <label
+            htmlFor="importData"
+            className="w-[33%] flex items-center  hover:shadow-2xl hover:cursor-pointer hover:bg-gray-500 bg-gray-400 text-white  p-5 rounded-2xl"
+          >
+            <div className="flex items-center border-2 p-3 rounded border-dashed">
+              {loading ? (
+                <FontAwesomeIcon
+                  className=" text-4xl text-black"
+                  icon={faSpinner}
+                  spin
+                />
+              ) : (
+                <FontAwesomeIcon
+                  className=" text-4xl text-black "
+                  icon={faCloudArrowUp}
+                />
+              )}
+              <p className="lg:text-lg ml-auto text-black w-[80%]">
+                Importation des données Avancement de programme
+              </p>
+            </div>
+            <input
+              type="file"
+              id="importData"
+              accept=".xlsx,.xls"
+              onChange={handleImportData}
+              className=" hidden"
+              ref={fileinputRef}
+              key={fileKey}
+            />
+          </label>
+
+          <div
+            onClick={handleGenerateEmploisDuTemps}
+            className="w-[33%] flex items-center  hover:shadow-2xl hover:cursor-pointer hover:bg-blue-600 bg-blue-500 text-white lg:p-10 p-5 rounded-2xl"
+          >
+            {loadingGenerate ? (
+              <FontAwesomeIcon
+                className=" text-4xl text-white"
+                icon={faSpinner}
+                spin
+              />
+            ) : (
+              <FontAwesomeIcon
+                className=" text-4xl "
+                icon={faWandMagicSparkles}
+              />
+            )}
+
+            <p className="lg:text-xl ml-auto w-[80%]">
+              Générate des emplois du temps des groupes
+            </p>
+          </div>
+
+          <NavLink
+            to={
+              "/administrateur/generer-emplois-du-temps/liste-des-emplois-du-temps"
+            }
+            className="w-[33%] flex items-center   hover:shadow-2xl hover:cursor-pointer hover:bg-blue-600 bg-blue-500 text-white lg:p-10 p-5 rounded-2xl"
+          >
+            <FontAwesomeIcon className=" text-4xl " icon={faEdit} />
+            <p className="lg:text-xl ml-auto w-[80%]">
+              presonaliser des emplois du temps des groupes
+            </p>
+          </NavLink>
+        </div>
+        <div className="pb-5 xl:w-[78] lg:w-[83%] flex gap-10 justify-between">
+          <ButtonTelechargementEmploisActif
+            label="Exporter les emplois du temps actif des groupe"
+            onClick={handleTelechargementDesEmploisDuTempsActifDesGroupes}
+          />
+          <ButtonTelechargementEmploisActif
+            label="Exporter les emplois du temps actif des formateurs"
+            onClick={handleTelechargementDesEmploisDuTempsActifDesFormateurs}
+          />
+          <ButtonTelechargementEmploisActif
+            label="Exporter les emplois du temps actif des salles"
+            onClick={handleTelechargementDesEmploisDuTempsActifDesSalles}
+          />
+        </div>
+      </div>
+      <PopupDeTelechargement
+        afficherPopup={afficherPopup}
+        setAfficherPopup={setAfficherPopup}
+        valuePopup={valuePopup}
+        setValuePopup={setValuePopup}
+        handleLogicTelechargement={handleLogicTelechargement}
+      />
+      <PopupSuccess
+        afficherPopupSuccess={afficherPopupSuccess}
+        setAfficherPopupSuccess={setAfficherPopupSuccess}
+        messageSuccess={messageSuccess}
+      />
+      <PopupError
+        afficherPopupError={afficherPopupError}
+        setAfficherPopupError={setAfficherPopupError}
+        errors={errors}
+      />
+    </div>
+  );
+}
