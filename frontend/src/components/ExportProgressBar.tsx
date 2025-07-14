@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { ExportContext } from "../contextApi/ExportContext";
 
 export default function ExportProgressBar() {

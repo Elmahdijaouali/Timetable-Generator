@@ -18,7 +18,7 @@ const addClassroom = async (req , res ) => {
   const {label , formateur1 ,  formateur2} = req.body
 
   if(!label || !formateur1 || !formateur2){
-      return res.status(422).json({ "errors" : 'the fields label , formateur1 and formateur2 is required !!'})
+      return res.status(422).json({ "errors" : "Les champs 'label', 'formateur1' et 'formateur2' sont obligatoires !" })
   }
    try{
    const classroom =   await Classroom.create({
@@ -43,12 +43,11 @@ const addClassroom = async (req , res ) => {
     })
     
 
-    return res.json({"message" : 'seccès created classroom '})
+    return res.json({"message" : "Salle créée avec succès"})
 
 
    }catch(err){
-    console;log(err)
-    return res.status(400).json({"errors" : 'Error ' + err})
+    return res.status(400).json({"errors" : 'Erreur : ' + err})
    }
 }
 
@@ -62,7 +61,6 @@ const classroomsDisponible = async (req , res) => {
 
      return res.json(classrooms)
   }catch(err){
-    console;log(err)
     return res.status(400).json({"errors" : 'Error ' + err})
   }
 }
@@ -78,7 +76,6 @@ const classroomsNonDisponible = async (req , res) => {
 
      return res.json(classrooms)
   }catch(err){
-    console;log(err)
     return res.status(400).json({"errors" : 'Error ' + err})
   }
 }
@@ -102,7 +99,6 @@ const updateAvailableClassroom = async (req , res) => {
       return res.json({"message" : 'seccès update available classroom'})
 
    }catch(err){
-      console.log(err)
       return res.json({'errors' : 'Error '+err})
    }
 }

@@ -1,8 +1,9 @@
-const { Group, Branch, GroupModuleFormateur, Module , GroupsNeedChangeTimetable} = require("./../models");
+const { Group, Branch, GroupModuleFormateur, Module , GroupsNeedChangeTimetable, Setting} = require("./../models");
 const { transform } = require("./../helpers/transformers/groupTransformer.js");
 const {
   transformGroupwithModules,
 } = require("./../helpers/transformers/groupWithModulesTransformer.js");
+const FormateurAvailabilityValidator = require("../services/formateurAvailabilityValidator.js");
 
 
 const index = async (req, res) => {
@@ -15,7 +16,7 @@ const index = async (req, res) => {
 
     return res.json(data);
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
   }
 };
 
@@ -49,35 +50,9 @@ const updateStateModule = async (req, res) => {
     });
   }
 
-
   try {
-
-    const  groupModuleFormateurs = await GroupModuleFormateur.findAll({ 
-      where : { is_started : true ,  groupId: groupId }
-    })
-    let total = 0 ; 
-    groupModuleFormateurs.forEach(item => {
-        total += Number(item.nbr_hours_presential_in_week)
-    })
-  
-    if( is_started == true ){
-      const groupModuleFormateurWantEditSate = await GroupModuleFormateur.findOne(
-        {
-          where: {
-            groupId: groupId,
-            moduleId: moduleId,
-          },
-        }
-      );
-  
-      total += Number(groupModuleFormateurWantEditSate.nbr_hours_presential_in_week)
-
-      if(total > 35 && groupModuleFormateurWantEditSate.is_started == false ){
-        return res.status(422).json({"errors" : "max hours presentail in week is 35 !!"})
-      }
-    }
-
-    const groupModuleFormateur =await GroupModuleFormateur.update(
+    // Only update is_started, no strict validation here
+    const groupModuleFormateur = await GroupModuleFormateur.update(
       { is_started: is_started },
       {
         where: {
@@ -87,17 +62,18 @@ const updateStateModule = async (req, res) => {
       }
     );
 
-   
     await GroupsNeedChangeTimetable.upsert({
       groupId : groupId
-    })
+    });
+
+    return res.json({ 
+      message: "seccès modifer state module en groupe"
+    });
 
   } catch (err) {
-    console.log(err);
-    return res.status(422).json({"errors" : 'Error'+err })
+    // Removed console.log statements for production
+    return res.status(422).json({"errors" : 'Error'+err });
   }
-
-  return res.json({ message: "seccès modifer state module en groupe" });
 };
 
 
@@ -112,8 +88,43 @@ const updateNbrHoursPresentailInWeek = async (req, res) => {
         "should by send in request groupId and moduleId and nbr_hours_presential_in_week!!",
     });
   }
+
   try {
-    
+    // Get the current GroupModuleFormateur record to get formateurId and current hours
+    const currentRecord = await GroupModuleFormateur.findOne({
+      where: {
+        groupId: groupId,
+        moduleId: moduleId,
+      },
+    });
+
+    if (!currentRecord) {
+      return res.status(404).json({
+        errors: "GroupModuleFormateur record not found",
+      });
+    }
+
+    const currentHours = Number(currentRecord.nbr_hours_presential_in_week) || 0;
+    const requestedHours = Number(nbr_hours_presential_in_week);
+
+    // Validate formateur availability before updating
+    const validationResult = await FormateurAvailabilityValidator.validateFormateurAvailability(
+      currentRecord.formateurId,
+      groupId,
+      moduleId,
+      requestedHours,
+      'presential',
+      currentHours
+    );
+
+    if (!validationResult.isValid) {
+      return res.status(422).json({
+        errors: validationResult.message,
+        details: validationResult.details
+      });
+    }
+
+    // If validation passes, update the record
     const groupModuleFormateur = await GroupModuleFormateur.update(
       { nbr_hours_presential_in_week: nbr_hours_presential_in_week },
       {
@@ -126,15 +137,20 @@ const updateNbrHoursPresentailInWeek = async (req, res) => {
 
     await GroupsNeedChangeTimetable.upsert({
       groupId : groupId
-    })
+    });
+
+    return res.json({
+      message: "seccès modifer nbr_hours_presential_in_week module en groupe",
+      validation: validationResult
+    });
 
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
+    return res.status(500).json({
+      errors: "Internal server error",
+      details: err.message
+    });
   }
-
-  return res.json({
-    message: "seccès modifer nbr_hours_presential_in_week module en groupe",
-  });
 };
 
 

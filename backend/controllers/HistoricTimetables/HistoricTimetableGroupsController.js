@@ -41,7 +41,6 @@ const index = async (req, res) => {
         });
 
     } catch (err) {
-        console.log(err);
         return res.status(400).json({ errors: 'Error: ' + err.message });
     }
 }
@@ -49,23 +48,37 @@ const index = async (req, res) => {
 const filterTimetableHistoric = async (req , res ) => {
    const valid_form = req.query.valid_form ;
    if(!valid_form){
-      return res.json({ "errors" : 'valid_form field is required for filter !'})
+      return res.status(400).json({ errors : 'valid_form field is required for filter!' });
    }
 
     try{
-      return res.json(new Date(valid_form))
+      // Parse the date string to a Date object (adjust format as needed)
+      const date = new Date(valid_form);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ errors: 'Invalid date format for valid_form.' });
+      }
+
       const timetables = await Timetable.findAll({
         where : {
-           status: "archived" , 
-          //  valid_form : new Date(valid_form)
-          valid_form : "2025-05-17T00:00:00.000Z"
-        }
-      })
+           status: "archived" ,
+           valid_form: date
+        },
+        include: [
+          {
+            model: Group,
+            as: 'group',
+            include: [
+              { model: Branch, as: "branch" }
+            ]
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
 
-      return res.json(timetables)
+      const data = timetables.map(timetable => transform(timetable));
+      return res.json({ data });
 
     }catch(err){
-       console.log(err)
         return res.status(400).json({ errors: 'Error: ' + err.message });
     }
 }
@@ -89,7 +102,6 @@ const getAllUniqueValidFromDates = async (req, res) => {
        return res.json(uniqueDates);
 
     } catch (err) {
-        console.error(err);
         return res.status(500).json({ error: 'Error' +err });
     }
 };

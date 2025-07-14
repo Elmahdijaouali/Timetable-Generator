@@ -58,13 +58,14 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "GroupModuleFormateur",
       tableName: "groupmoduleformateurs",
-      // indexes: [
-      //   {
-      //     unique: true,
-      //     fields: ["groupId", "moduleId", "formateurId"],
-      //     name: "unique_group_module_formateur",
-      //   },
-      // ],
+      timestamps: true,
+      indexes: [
+        {
+          unique: true,
+          fields: ["groupId", "moduleId"],
+          name: "unique_group_module",
+        },
+      ],
     }
   );
 

@@ -7,7 +7,6 @@ interface Props {
   valuePopup: string;
   setValuePopup: (value: string) => void;
   handleLogicTelechargement: () => void;
-  availableFormats?: string[]; // e.g. ['png', 'excel', 'pdf']
 }
 
 export default function PopupDeTelechargement({
@@ -16,7 +15,6 @@ export default function PopupDeTelechargement({
   valuePopup,
   setValuePopup,
   handleLogicTelechargement,
-  availableFormats = ['png', 'excel', 'pdf'],
 }: Props) {
   const handleClick = () => {
     handleLogicTelechargement();

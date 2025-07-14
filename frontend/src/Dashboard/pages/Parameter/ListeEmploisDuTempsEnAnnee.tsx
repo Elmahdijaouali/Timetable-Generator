@@ -84,6 +84,9 @@ export default function ListeEmploisDuTempsEnAnnee() {
       <div className="my-5">
         <div className="flex">
           <Input
+            type="text"
+            name="search"
+            id="search"
             placeholder="Enter le formateur..."
             className="!w-[500px] bg-gray-200"
             onChange={handleFilter}

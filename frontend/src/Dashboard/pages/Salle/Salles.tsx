@@ -51,8 +51,8 @@ export default function Salles() {
         setMessageSuccess("succès la importation des données les salles ");
       }
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.errors) {
-        setErrors(err.response.data.errors);
+      if ((err as any).response && (err as any).response.data && (err as any).response.data.errors) {
+        setErrors((err as any).response.data.errors);
         setAfficherPopupError(true);
       }
       setLoading(false);
@@ -207,8 +207,10 @@ export default function Salles() {
       <PopupSuccess
         afficherPopupSuccess={afficherPopupSuccess}
         messageSuccess={messageSuccess}
+        setAfficherPopupSuccess={setAfficherPopupSuccess}
+        setAfficherPopupError={setAfficherPopupError}
       />
-      <PopupError afficherPopupError={afficherPopupError} errors={errors} />
+      <PopupError afficherPopupError={afficherPopupError} errors={errors} setAfficherPopupError={setAfficherPopupError} />
       <div className="h-[20vh]"></div>
     </div>
   );

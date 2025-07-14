@@ -19,7 +19,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'BranchModule',
-    tableName : 'branchmodules'
+    tableName : 'branchmodules',
+    timestamps: true
   });
   return BranchModule;
 };

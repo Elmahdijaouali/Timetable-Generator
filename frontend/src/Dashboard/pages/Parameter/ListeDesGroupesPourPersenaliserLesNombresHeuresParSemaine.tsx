@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock, faGear, faList } from "@fortawesome/free-solid-svg-icons";
+import { faGear, faList } from "@fortawesome/free-solid-svg-icons";
 import { useContext, useEffect, useState } from "react";
 import ButtonNavigateBack from "../../../components/ButtonNavigateBack";
 import { filieresContext } from "../../../contextApi/filieresContext";
@@ -110,7 +110,6 @@ export default function ListeDesGroupesPourPersenaliserLesNombresHeuresParSemain
                   .map((filier) => {
                     return (
                       <option
-                        onKeyDown={filier.id}
                         value={filier.code_branch}
                         key={filier.id}
                       >

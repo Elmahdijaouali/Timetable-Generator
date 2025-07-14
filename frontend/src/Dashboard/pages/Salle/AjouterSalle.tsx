@@ -71,12 +71,13 @@ export default function AjouterSalle() {
               Numéro de salle
             </label>
             <Input
-              placeholder="Entrez le numéro de la salle"
+              type="text"
+              id="salle-label"
+              placeholder="Nom de la salle"
               className="w-full bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-4 py-3 text-lg transition"
               name="label"
               onChange={handleChange}
               value={formData.label}
-              autoComplete="off"
             />
           </div>
           <div>

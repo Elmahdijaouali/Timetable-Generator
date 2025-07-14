@@ -36,12 +36,6 @@ export default function AfficherEmploiDuTempsDeGroupe() {
   const [timetableGroup, setTimetableGroup] =
     useState<TimetableGroupData | null>(null);
 
-  const timeShots = [
-    "08:30-11:00",
-    "11:00-13:30",
-    "13:30-16:00",
-    "16:00-18:30",
-  ];
   const [timetablesActiveForGroups, setTimetableActiveForGroups] = useState<
     TimetableActive[]
   >([]);
@@ -149,10 +143,12 @@ export default function AfficherEmploiDuTempsDeGroupe() {
             </button>
           </div>
         </div>
-        <TimetableGroup
-          timetableRef={timetableRef}
-          timetableGroup={timetableGroup}
-        />
+        {timetableGroup && (
+          <TimetableGroup
+            timetableRef={timetableRef}
+            timetableGroup={timetableGroup}
+          />
+        )}
         {/* <div ref={timetableRef} className="p-5">
         <h1 className="text-center text-2xl font-bold">EMPLOI DU TEMPS</h1>
         <div className="flex justify-between my-5">
@@ -265,35 +261,3 @@ export default function AfficherEmploiDuTempsDeGroupe() {
     </>
   );
 }
-
-// const RenderTimeShot = ({ dayData, timeshot, mergeSession }) => {
-//   const session = dayData.find((session) => session.timeshot == timeshot);
-//   if (!session) {
-//     return <td className="lg:px-5 py-2 px-3  text-center border w-[12%]"></td>;
-//   }
-
-//   return (
-//     <td
-//       className={`lg:px-5 py-2 px-3  text-center border w-[12%] font `}
-//       colSpan={mergeSession ? 2 : 1}
-//       style={{ background: session.color }}
-//     >
-//       <span className=" font-semibold  ">{session.module}</span> <br />
-//       {/* <span className=" font-semibold  ">{session.formateur.slice(session.formateur.indexOf(" ") , )}</span> <br /> */}
-//       <span className=" font-semibold  ">{session.formateur}</span> <br />
-//       <span className=" font-semibold  ">{session.salle}</span> <br />
-//     </td>
-//   );
-// };
-const RenderTimeShot = ({ session, mergeSession }) => {
-  if (!session) {
-    return <td style={{ background: '#f9fafb' }} className="lg:px-5 py-2 px-3 text-center border w-[12%]" />;
-  }
-  return (
-    <td colSpan={mergeSession ? 2 : 1} className="lg:px-5 py-2 px-3 text-center border w-[12%]" style={{ background: session.color }}>
-      <span style={{ color: '#111827', fontWeight: 600 }}>{session.module}</span> <br />
-      <span style={{ color: '#111827', fontWeight: 600 }}>{session.formateur.slice(session.formateur.indexOf(" "))}</span> <br />
-      <span style={{ color: '#111827', fontWeight: 600 }}>{session.salle}</span> <br />
-    </td>
-  );
-};

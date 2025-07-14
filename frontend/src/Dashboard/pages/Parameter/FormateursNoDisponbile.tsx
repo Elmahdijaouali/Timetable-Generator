@@ -3,7 +3,6 @@ import ButtonNavigateBack from "../../../components/ButtonNavigateBack";
 import {
   faList,
   faPlus,
-  faSquarePlus,
   faUsersLine,
 } from "@fortawesome/free-solid-svg-icons";
 import Input from "../../../components/Input";

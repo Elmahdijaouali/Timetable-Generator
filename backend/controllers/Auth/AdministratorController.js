@@ -98,4 +98,16 @@ const deleteAccount = async (req , res ) => {
 
    }
 }
-module.exports = { updateInfo , updatePassword , deleteAccount }
+
+// Count administrators
+const countAdministrators = async (req, res) => {
+  try {
+    const count = await Administrator.count();
+    res.json({ count });
+  } catch (error) {
+    console.error('Error counting administrators:', error);
+    res.status(500).json({ error: 'Failed to count administrators' });
+  }
+};
+
+module.exports = { updateInfo , updatePassword , deleteAccount , countAdministrators };

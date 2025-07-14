@@ -33,7 +33,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Timetable',
-    tableName:"timetables"
+    tableName: 'timetables',
+    timestamps: true
   });
   Timetable.associate = (models) => {
     Timetable.belongsTo(models.Group , { foreignKey : "groupId" , as : "group", onDelete:"CASCADE" , onUpdate : "CASCADE"})

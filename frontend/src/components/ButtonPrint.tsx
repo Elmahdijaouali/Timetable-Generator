@@ -2,7 +2,7 @@ import { faPrint } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React from "react";
 
-export default function ButtonPrint({ timetableRef }: { timetableRef: React.RefObject<HTMLDivElement> | null }) {
+export default function ButtonPrint() {
 
   const handlePrint = () => {
     window.print()

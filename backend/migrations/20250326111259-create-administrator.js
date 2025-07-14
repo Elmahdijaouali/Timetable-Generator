@@ -18,6 +18,14 @@ module.exports = {
       password: {
         type: Sequelize.STRING
       },
+      profileImage: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      dashboardBackground: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

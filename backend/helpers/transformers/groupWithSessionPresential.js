@@ -4,7 +4,7 @@ module.exports = {
         const modules =  [] 
         
         group.GroupModuleFormateurs
-        .filter(module => module.is_started === true )
+        .filter(module => module.is_started === true && module.validate_efm !== true)
         .forEach(gmf => {
              const module = gmf.module  
              const formateur = gmf.formateur 
@@ -38,25 +38,5 @@ module.exports = {
         })
 
         return modules
-
-        //  return {
-        //      id : group.id , 
-        //      code_group : group.code_group  , 
-        //      modules : group.GroupModuleFormateurs
-        //      .filter(module => module.is_started === true )
-        //      .map(module => {
-        //         return {
-        //             id :module.module.id ,
-        //             code_module : module.module.code_module , 
-        //             module_label : module.module.label ,
-        //             nbr_hours_presential_in_week : module.nbr_hours_presential_in_week ,
-        //             is_started : module.is_started , 
-        //             formateur:module.formateur.name ,
-        //             classroom : module.formateur.classroom.label , 
-        //             classroom_available :  module.formateur.classroom.is_available ,
-        //             formateur_available : module.formateur.is_available ,
-        //         }
-        //      })
-        //  }
     }
 }

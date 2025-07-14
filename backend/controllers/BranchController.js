@@ -7,7 +7,7 @@ const index = async (req  , res ) => {
        return res.json(branches)
 
      }catch(err){
-        console.log(err)
+        // Removed console.log statements for production
      }
 }
 

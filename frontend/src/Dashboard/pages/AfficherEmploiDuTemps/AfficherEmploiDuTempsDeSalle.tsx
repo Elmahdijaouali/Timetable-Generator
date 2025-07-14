@@ -69,10 +69,12 @@ export default function AfficherEmploiDuTempsDeSalle() {
           </button>
         </div>
       </div>
-      <TimetableSalle
-        timetableSalle={timetableSalle}
-        timetableRef={timetableRef}
-      />
+      {timetableSalle && (
+        <TimetableSalle
+          timetableSalle={timetableSalle}
+          timetableRef={timetableRef}
+        />
+      )}
       <PopupDeTelechargement
         afficherPopup={afficherPopup}
         setAfficherPopup={setAfficherPopup}
@@ -83,24 +85,3 @@ export default function AfficherEmploiDuTempsDeSalle() {
     </div>
   );
 }
-
-const RenderTimeShot = ({ session, mergeSession }) => {
-  if (!session) {
-    return <td className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
-  }
-
-  return (
-    <td
-      colSpan={mergeSession ? 2 : 1}
-      className="lg:px-5 py-2 px-3 text-center border w-[12%]"
-      style={{ background: session.color }}
-    >
-      <span className="font-semibold">{session.module}</span> <br />
-      <span className=" font-semibold  ">
-        {session.formateur.slice(session.formateur.indexOf(" "))}
-      </span>{" "}
-      <br />
-      <span className="font-semibold">{session.salle}</span> <br />
-    </td>
-  );
-};

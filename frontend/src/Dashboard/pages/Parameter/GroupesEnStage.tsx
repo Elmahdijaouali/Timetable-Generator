@@ -2,11 +2,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import {
-  faClose,
   faList,
   faPeopleGroup,
   faPlus,
-  faSquarePlus,
 } from "@fortawesome/free-solid-svg-icons";
 import ButtonNavigateBack from "../../../components/ButtonNavigateBack";
 import { useContext, useEffect, useState } from "react";
@@ -48,17 +46,6 @@ export default function GroupesEnStage() {
   const [valueInputSearch, setValueInputSearch] = useState("");
 
   const [errors, setErrors] = useState("");
-
-  const handleFilterByFilier = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value == "") {
-      setGroupsEnStageAfterFilter(groupesEnStage);
-    }
-    const groupsEnStageAfterFilter = groupesEnStage.filter(
-      (stage) => stage.group.branchId == Number(value)
-    );
-    setGroupsEnStageAfterFilter(groupsEnStageAfterFilter);
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

@@ -6,7 +6,6 @@ const index =async (req , res) => {
 
        return res.json(classrooms)
     }catch(err){
-        console.log(err)
         return res.status(400).json({"errors" : err})
     }
 }
@@ -41,7 +40,6 @@ const show = async (req , res ) => {
     return res.json( transform(timetablesGroups))
 
     }catch(err){
-        console.log(err)
         return res.status(400).json({"errors" : err})
     }
 }

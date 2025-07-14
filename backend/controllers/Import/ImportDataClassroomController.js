@@ -3,7 +3,7 @@ const { Classroom, Formateur } = require("../../models");
 
 const importDataClassroom = async (req, res) => {
   if (!req.file) {
-    return res.status(422).json({ errors: " file not upload !" });
+    return res.status(422).json({ errors: "Le fichier n'a pas été téléchargé !" });
   }
 
   try {
@@ -16,7 +16,7 @@ const importDataClassroom = async (req, res) => {
       !rows[0]["Mle Formateur"] &&
       !rows[0]["Formateur"]
     ) {
-      return res.status(422).json({"errors" : 'file inccrect !!'})
+      return res.status(422).json({"errors" : 'Fichier incorrect !'})
     }
     for (let row of rows) {
       if (row["Salle"] && row["Mle Formateur"] && row["Formateur"]) {
@@ -35,11 +35,10 @@ const importDataClassroom = async (req, res) => {
       }
     }
   } catch (err) {
-    console.log("error");
-    res.status(422).json({ errors: err });
+    res.status(422).json({ errors: "Erreur lors de l'importation des salles.", details: err });
   }
 
-  return res.json({ message: "sucessfuly imporatation" });
+  return res.json({ message: "Importation des salles réussie" });
 };
 
 module.exports = { importDataClassroom };

@@ -10,7 +10,7 @@ const index = async (req , res ) => {
     return res.json(formateurs)
 
   }catch(err){
-     console.log(err)
+    
   }
 }
 
@@ -43,7 +43,7 @@ const show = async (req , res ) => {
     return res.json(transform(timetablesGroups))
 
   }catch(err){
-     console.log(err)
+    
   }
 }
 

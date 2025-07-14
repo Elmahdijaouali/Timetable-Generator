@@ -1,6 +1,9 @@
-const { FormateurTimetable, Formateur } = require("./../models");
-const {transform} = require('./../helpers/transformers/timetableFormateursTransformer.js');
-const {transformFormateur } = require('./../helpers/transformers/timetableFormateurTransformer.js');
+const path = require('path');
+const {transform} = require(path.join(__dirname, '../helpers/transformers/timetableFormateursTransformer.js'));
+const {transformFormateur } = require(path.join(__dirname, '../helpers/transformers/timetableFormateurTransformer.js'));
+const ExcelJS = require('exceljs');
+const { FormateurTimetable, Session, Module, Classroom, Formateur } = require('../models');
+const PDFDocument = require('pdfkit');
 
 const index = async (req, res) => {
   const formateurs = await Formateur.findAll({
@@ -37,4 +40,122 @@ const show =async (req , res ) => {
      return res.json(data)
 }
 
+// Export formateur timetables as Excel
+const exportFormateursExcel = async (req, res) => {
+  try {
+    // Fetch all formateur timetables with sessions
+    const formateurTimetables = await FormateurTimetable.findAll({
+      include: [
+        {
+          model: Formateur,
+          as: 'formateur',
+        },
+        {
+          model: Session,
+          include: [
+            { model: Module, as: 'module' },
+            { model: Classroom, as: 'classroom' },
+          ],
+        },
+      ],
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Emplois du temps des formateurs');
+
+    // Header
+    sheet.addRow([
+      'Formateur',
+      'MLE',
+      'Date de validité',
+      "Nombre d'heures",
+      'Sessions (Résumé)',
+    ]);
+
+    formateurTimetables.forEach((ft) => {
+      const sessionsSummary = (ft.Sessions || [])
+        .map(
+          (s) =>
+            `${s.day} ${s.timeshot}: ${s.module?.label || ''} (${s.type}) - ${s.classroom?.label || 'Teams'}`
+        )
+        .join('\n');
+      sheet.addRow([
+        ft.formateur?.name || '',
+        ft.formateur?.mle_formateur || '',
+        ft.valid_form ? new Date(ft.valid_form).toLocaleDateString() : '',
+        ft.nbr_hours_in_week || '',
+        sessionsSummary,
+      ]);
+    });
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="emplois_du_temps_formateurs.xlsx"'
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Error exporting Excel:', err);
+    res.status(500).json({ message: 'Erreur lors de l\'export Excel.' });
+  }
+};
+
+// Export formateur timetables as PDF
+const exportFormateursPdf = async (req, res) => {
+  try {
+    // Fetch all formateur timetables with sessions
+    const formateurTimetables = await FormateurTimetable.findAll({
+      include: [
+        {
+          model: Formateur,
+          as: 'formateur',
+        },
+        {
+          model: Session,
+          include: [
+            { model: Module, as: 'module' },
+            { model: Classroom, as: 'classroom' },
+          ],
+        },
+      ],
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="emplois_du_temps_formateurs.pdf"');
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Emplois du temps des formateurs', { align: 'center' });
+    doc.moveDown();
+
+    formateurTimetables.forEach((ft, idx) => {
+      doc.fontSize(12).fillColor('black');
+      doc.text(`Formateur: ${ft.formateur?.name || ''}`, { continued: true }).text(`   MLE: ${ft.formateur?.mle_formateur || ''}`);
+      doc.text(`Date de validité: ${ft.valid_form ? new Date(ft.valid_form).toLocaleDateString() : ''}`, { continued: true }).text(`   Nombre d'heures: ${ft.nbr_hours_in_week || ''}`);
+      doc.moveDown(0.5);
+      doc.font('Helvetica-Bold').text('Sessions:', { underline: true });
+      doc.font('Helvetica').fontSize(10);
+      (ft.Sessions || []).forEach((s) => {
+        doc.text(`- ${s.day} ${s.timeshot}: ${s.module?.label || ''} (${s.type}) - ${s.classroom?.label || 'Teams'}`);
+      });
+      doc.moveDown();
+      if (idx < formateurTimetables.length - 1) doc.addPage();
+    });
+
+    doc.end();
+  } catch (err) {
+    console.error('Error exporting PDF:', err);
+    res.status(500).json({ message: "Erreur lors de l'export PDF." });
+  }
+};
+
 module.exports = { index , show };
+module.exports.exportFormateursExcel = exportFormateursExcel;
+module.exports.exportFormateursPdf = exportFormateursPdf;

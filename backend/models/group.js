@@ -39,6 +39,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "Group",
       tableName: "groups",
+      timestamps: true
     }
   );
   Group.associate = (models) => {

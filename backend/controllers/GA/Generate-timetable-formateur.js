@@ -1,6 +1,7 @@
 const { FormateurTimetable, Classroom, Formateur } = require("./../../models");
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const timeShots = ["08:30-13:30", "13:30-18:30"];
+const saturdayTimeShots = ["08:30-11:00", "11:00-13:30"];
 
 
 // generate the timetables formateurs 
@@ -90,37 +91,36 @@ const insertTwoFormateurToFormateurTimetable = async (p1, p2) => {
       
       });
     } else {
-      if (indexTimeShotP1 == 0) {
-        await FormateurTimetable.findOrCreate({
-          where : {
-            formateurId: p1.id,
-            day: day,
-            year: year,
-          } ,
-          defaults : {
-            formateurId: p1.id,
-            timeshot: timeShots[indexTimeShotP1],
-            day: day,
-            year: year,
-          }
-         
-        });
-      } else {
-        await FormateurTimetable.findOrCreate({
-          where : {
-            formateurId: p2.id,
-            day: day,
-            year: year,
-          } ,
-          defaults : {
-            formateurId: p2.id,
-            timeshot: timeShots[indexTimeShotP2],
-            day: day,
-            year: year,
-          }
-        
-        });
-      }
+      // Saturday: First formateur gets "08:30-11:00", Second formateur gets "11:00-13:30"
+      await FormateurTimetable.findOrCreate({
+        where : {
+          formateurId: p1.id,
+          day: day,
+          year: year,
+        } ,
+        defaults : {
+          formateurId: p1.id,
+          timeshot: saturdayTimeShots[0], // "08:30-11:00"
+          day: day,
+          year: year,
+        }
+       
+      });
+
+      await FormateurTimetable.findOrCreate({
+        where : {
+          formateurId: p2.id,
+          day: day,
+          year: year,
+        } ,
+        defaults : {
+          formateurId: p2.id,
+          timeshot: saturdayTimeShots[1], // "11:00-13:30"
+          day: day,
+          year: year,
+        }
+      
+      });
     }
 
     if (indexTimeShotP1 == 0) {
@@ -155,22 +155,21 @@ const insertFormateurToFormateurTimetable =async (p) => {
       
       });
     } else {
-      if (indexTimeShot == 0) {
-        await FormateurTimetable.findOrCreate({
-          where : {
-            formateurId: p.id,
-            day: day,
-            year: year,
-          } ,
-          defaults : {
-            formateurId: p.id,
-            timeshot: timeShots[indexTimeShot],
-            day: day,
-            year: year,
-          }
+      // Saturday: Single formateur gets "08:30-11:00"
+      await FormateurTimetable.findOrCreate({
+        where : {
+          formateurId: p.id,
+          day: day,
+          year: year,
+        } ,
+        defaults : {
+          formateurId: p.id,
+          timeshot: saturdayTimeShots[0], // "08:30-11:00"
+          day: day,
+          year: year,
+        }
        
-        });
-      }
+      });
     }
 
     if (indexTimeShot == 0) {

@@ -11,8 +11,136 @@ const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
 const timeShots = ["08:30-11:00", "11:00-13:30", "13:30-16:00", "16:00-18:30"];
 const timeShotsFormateur = ["08:30-13:30", "13:30-18:30"];
 
+// Time slot definitions with start and end times in minutes
+const TIME_SLOT_DEFINITIONS = {
+  "08:30-11:00": { start: 8 * 60 + 30, end: 11 * 60, index: 0 },
+  "11:00-13:30": { start: 11 * 60, end: 13 * 60 + 30, index: 1 },
+  "13:30-16:00": { start: 13 * 60 + 30, end: 16 * 60, index: 2 },
+  "16:00-18:30": { start: 16 * 60, end: 18 * 60 + 30, index: 3 }
+};
 
+// Gap requirement in minutes (2.5 hours = 150 minutes)
+const REQUIRED_GAP_MINUTES = 150;
 
+/**
+ * Check if there's a sufficient gap between two time slots
+ * @param {string} slot1 - First time slot (e.g., "08:30-11:00")
+ * @param {string} slot2 - Second time slot (e.g., "13:30-16:00")
+ * @returns {boolean} - True if there's at least 2.5 hours gap
+ */
+const hasSufficientGap = (slot1, slot2) => {
+  const def1 = TIME_SLOT_DEFINITIONS[slot1];
+  const def2 = TIME_SLOT_DEFINITIONS[slot2];
+  
+  if (!def1 || !def2) return false;
+  
+  // Calculate gap between slots
+  // If slot2 comes after slot1: gap = slot2.start - slot1.end
+  // If slot1 comes after slot2: gap = slot1.start - slot2.end
+  let gap;
+  if (def2.start > def1.end) {
+    gap = def2.start - def1.end;
+  } else if (def1.start > def2.end) {
+    gap = def1.start - def2.end;
+  } else {
+    // Slots overlap or are adjacent (no gap)
+    gap = 0;
+  }
+  
+  return gap >= REQUIRED_GAP_MINUTES;
+};
+
+/**
+ * Get all time slots that have sufficient gap from a given slot
+ * @param {string} referenceSlot - The reference time slot
+ * @returns {string[]} - Array of time slots with sufficient gap
+ */
+const getValidSlotsWithGap = (referenceSlot) => {
+  const validSlots = [];
+  
+  for (const slot of timeShots) {
+    if (slot !== referenceSlot && hasSufficientGap(referenceSlot, slot)) {
+      validSlots.push(slot);
+    }
+  }
+  
+  return validSlots;
+};
+
+/**
+ * Check if a new session can be added without violating the 2.5-hour gap rule
+ * @param {Array} daySessions - Array of existing sessions for the day
+ * @param {Object} newSession - The new session to be added
+ * @returns {boolean} - True if the session can be added
+ */
+const canAddSessionWithGapRule = (daySessions, newSession) => {
+  const newSessionType = newSession.type;
+  const newSessionSlot = newSession.timeShot;
+  
+  // Check against existing sessions
+  for (const existingSession of daySessions) {
+    const existingSessionType = existingSession.type;
+    const existingSessionSlot = existingSession.timeShot;
+    
+    // If one is remote and the other is presential, check gap
+    if (newSessionType !== existingSessionType) {
+      if (!hasSufficientGap(newSessionSlot, existingSessionSlot)) {
+        return false;
+      }
+    }
+  }
+  
+  return true;
+};
+
+/**
+ * Find the best alternative time slot for a session that violates the gap rule
+ * @param {Array} daySessions - Array of existing sessions for the day
+ * @param {Object} session - The session that needs a new time slot
+ * @returns {string|null} - The best alternative time slot or null if none available
+ */
+const findAlternativeTimeSlot = (daySessions, session) => {
+  const sessionType = session.type;
+  const takenSlots = daySessions.map(s => s.timeShot);
+  
+  // Get all remote sessions to check against
+  const remoteSessions = daySessions.filter(s => s.type === "à distance");
+  const presentialSessions = daySessions.filter(s => s.type !== "à distance");
+  
+  // Find all available slots (not taken by any session)
+  const availableSlots = timeShots.filter(slot => !takenSlots.includes(slot));
+  
+  // For each available slot, check if it respects the gap rule
+  for (const slot of availableSlots) {
+    let isValid = true;
+    
+    // Check against remote sessions if this is a presential session
+    if (sessionType !== "à distance") {
+      for (const remoteSession of remoteSessions) {
+        if (!hasSufficientGap(slot, remoteSession.timeShot)) {
+          isValid = false;
+          break;
+        }
+      }
+    }
+    
+    // Check against presential sessions if this is a remote session
+    if (sessionType === "à distance") {
+      for (const presentialSession of presentialSessions) {
+        if (!hasSufficientGap(slot, presentialSession.timeShot)) {
+          isValid = false;
+          break;
+        }
+      }
+    }
+    
+    if (isValid) {
+      return slot;
+    }
+  }
+  
+  return null;
+};
 
 
 const canAddSessionToDay = (timetable, indexDay, moduleSession) => {
@@ -58,31 +186,47 @@ const checkIfHaveSessionRemoteInDay = (daySessions, session) => {
     const types = daySessions.map(s => s.type);
     const sessionIndex = timeShots.indexOf(session.timeShot);
 
+    // Check if there are remote sessions and this is not a remote session
     if (types.includes("à distance") && session.type !== "à distance") {
         const remoteSessions = daySessions.filter(s => s.type === "à distance");
-        let newIndex = sessionIndex;
-
         
-        remoteSessions.forEach(remoteSession => {
-            const remoteIndex = timeShots.indexOf(remoteSession.timeShot);
-
-            if (remoteIndex === 0 && sessionIndex === 1) {
-                newIndex = 3; 
-            } else if (remoteIndex === 3 && sessionIndex === 2) {
-                newIndex = 1; 
-            } else if (remoteIndex === 1 && sessionIndex === 0) {
-                newIndex = 2; 
-            } else if (remoteIndex === 2 && sessionIndex === 3) {
-                newIndex = 1; 
+        // Check if the current time slot violates the gap rule
+        if (!canAddSessionWithGapRule(daySessions, session)) {
+            // Find an alternative time slot that respects the gap rule
+            const alternativeSlot = findAlternativeTimeSlot(daySessions, session);
+            
+            if (alternativeSlot) {
+                return {
+                    ...session,
+                    timeShot: alternativeSlot,
+                };
+            } else {
+                // If no alternative found, try to find any available slot
+                const takenSlots = daySessions.map(s => s.timeShot);
+                const availableSlots = timeShots.filter(slot => !takenSlots.includes(slot));
+                
+                if (availableSlots.length > 0) {
+                    return {
+                        ...session,
+                        timeShot: availableSlots[Math.floor(Math.random() * availableSlots.length)],
+                    };
+                }
             }
-        });
-
-        const adjustedTimeShot = timeShots[newIndex];
-        return {
-            ...session,
-            timeShot: checkIfTimeshotTakenInDayEdit(daySessions, adjustedTimeShot),
-        };
+        }
     }
+    
+    // Check if this session would violate the gap rule against existing sessions
+    if (!canAddSessionWithGapRule(daySessions, session)) {
+        const alternativeSlot = findAlternativeTimeSlot(daySessions, session);
+        
+        if (alternativeSlot) {
+            return {
+                ...session,
+                timeShot: alternativeSlot,
+            };
+        }
+    }
+    
     return session;
 };
 
@@ -158,11 +302,16 @@ const getValidTimeShotsForFormateurDay = async (formateurId, dayName) => {
     const validSlots = [];
   
     for (const { timeshot } of availability) {
-    
-      if (timeshot === "08:30-13:30") {
-        validSlots.push("08:30-11:00", "11:00-13:30");
-      } else if (timeshot === "13:30-18:30") {
-        validSlots.push("13:30-16:00", "16:00-18:30");
+      if (dayName === "Samedi") {
+        if (timeshot === "08:30-11:00" || timeshot === "11:00-13:30") {
+          validSlots.push(timeshot);
+        }
+      } else {
+        if (timeshot === "08:30-13:30") {
+          validSlots.push("08:30-11:00", "11:00-13:30");
+        } else if (timeshot === "13:30-18:30") {
+          validSlots.push("13:30-16:00", "16:00-18:30");
+        }
       }
     }
   
@@ -180,7 +329,7 @@ const checkIfTimeshotsTwoSessionTakenInDayEdit = (day, timeshot1, timeshot2) => 
   }
 
  
-  const availableTimeShots = TIME_SHOTS.filter(t => !taken.includes(t));
+  const availableTimeShots = timeShots.filter(t => !taken.includes(t));
   
   for (let i = 0; i < availableTimeShots.length - 1; i++) {
     const t1 = availableTimeShots[i];
@@ -208,6 +357,10 @@ module.exports = {
   checkFormateurAvailabilityForGroup ,
   getValidTimeShotsForFormateurDay , 
   checkIfTimeshotsTwoSessionTakenInDayEdit,
-  isTimeshotTaken
-
+  isTimeshotTaken,
+  // New functions for 2.5-hour gap rule
+  hasSufficientGap,
+  getValidSlotsWithGap,
+  canAddSessionWithGapRule,
+  findAlternativeTimeSlot
 };

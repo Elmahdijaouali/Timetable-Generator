@@ -412,7 +412,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
             )}
         </div>
       </div>
-      <PopupError afficherPopupError={afficherPopupError} errors={errors} />
+      <PopupError afficherPopupError={afficherPopupError} errors={errors} setAfficherPopupError={setAfficherPopupError} />
       <div className="h-[20vh]"></div>
     </div>
   );

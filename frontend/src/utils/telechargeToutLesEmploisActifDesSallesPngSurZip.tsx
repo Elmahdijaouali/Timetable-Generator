@@ -4,7 +4,6 @@ import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import api from "../api/apiConfig";
 import TimetableSalle from "../components/TimetableSalle";
-import { handleNotification } from "./notification";
 
 interface TimetableActive {
   id: number;

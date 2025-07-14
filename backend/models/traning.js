@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Traning',
-   
+    timestamps: true
   });
   Traning.associate = (models) => {
      Traning.belongsTo(models.Group , { foreignKey : 'groupId' , as : 'group',  onDelete : 'CASCADE' , onUpdate : 'CASCADE' })

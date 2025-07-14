@@ -11,7 +11,6 @@ const index = async (req , res) => {
       return res.json(groupsEnStage)
 
     }catch(err){
-        console.log(err)
         return res.status(400).json({"errors" : 'Error ' + err})
     }
 }
@@ -20,11 +19,11 @@ const store = async (req , res ) => {
     const { groupId , date_start , date_fin } = req.body 
 
     if(!groupId || !date_start || !date_fin){
-       return res.status(422).json({"errors" : "the fields groupId , date_start and date_fin is required !!"})
+       return res.status(422).json({"errors" : "Les champs 'groupId', 'date_start' et 'date_fin' sont obligatoires !"})
     }
 
     if( new Date(date_start) >= new Date(date_fin)  || new Date(date_start)  < new Date() || new Date(date_fin)  < new Date() ){
-        return res.status(422).json({"errors" : "problem in date start or date fin check dates is valid !!"})
+        return res.status(422).json({"errors" : "Problème avec la date de début ou de fin. Vérifiez que les dates sont valides !"})
     }
     try{
       await Traning.create({
@@ -33,10 +32,9 @@ const store = async (req , res ) => {
           date_fin : date_fin
       })
 
-      return res.json({"message" : "seccès ajouter groupe en satge "})
+      return res.json({"message" : "Groupe en stage ajouté avec succès"})
     }catch(err){
-        console.log(err)
-        return res.status(400).json({"errors" : 'Error '+err})
+        return res.status(400).json({"errors" : 'Erreur : ' + err})
     }
 }
 module.exports = { index , store }

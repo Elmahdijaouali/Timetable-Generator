@@ -26,6 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'GroupMerge',
     tableName : 'groupmerges' ,
+    timestamps: true,
     indexes : [
       {
         fields : ['groupId' , 'mergeId'] ,

@@ -1,7 +1,8 @@
-const { Merge, ModuleRemoteSession, Module  , Group , GroupsNeedChangeTimetable } = require("./../models");
+const { Merge, ModuleRemoteSession, Module  , Group , GroupsNeedChangeTimetable, Setting } = require("./../models");
 const {
   transform,
 } = require("./../helpers/transformers/mergeWithModulesRemoteSessionWithoutFilterTransformer.js");
+const FormateurAvailabilityValidator = require("../services/formateurAvailabilityValidator.js");
 
 const index = async (req, res) => {
   try {
@@ -9,7 +10,7 @@ const index = async (req, res) => {
 
     return res.json(merges);
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
   }
 };
 
@@ -30,9 +31,11 @@ const show = async (req, res) => {
       include: [{ model: ModuleRemoteSession, include: [{ model: Module }] }],
     });
 
-    return res.json(transform(merge));
+    const transformedData = await transform(merge);
+    return res.json(transformedData);
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
+    return res.status(500).json({ errors: "Internal server error" });
   }
 };
 
@@ -48,33 +51,8 @@ const updateStateModule = async (req, res) => {
   }
 
   try {
-    const  moduleRemoteSessions = await ModuleRemoteSession.findAll({ 
-      where : { is_started : true ,  mergeId: mergeId }
-    })
-    let total = 0 ; 
-    moduleRemoteSessions.forEach(item => {
-        total += Number(item.nbr_hours_remote_session_in_week)
-    })
-  
-    if( is_started == true ){
-      const moduleRemoteSessionWantEditSate = await ModuleRemoteSession.findOne(
-        {
-          where: {
-            mergeId: mergeId,
-            moduleId: moduleId,
-          },
-        }
-      );
-  
-      total += Number(moduleRemoteSessionWantEditSate.nbr_hours_remote_session_in_week)
-
-      if(total > 10 && moduleRemoteSessionWantEditSate.is_started == false ){
-        return res.status(422).json({"errors" : "max hours à distance in week is 10 !!"})
-      }
-
-    }
- 
-     await ModuleRemoteSession.update(
+    // Only update is_started, no strict validation here
+    await ModuleRemoteSession.update(
       { is_started: is_started },
       {
         where: {
@@ -84,31 +62,36 @@ const updateStateModule = async (req, res) => {
       }
     );
 
-    const moduleRemoteSession =await ModuleRemoteSession.findOne({
-      where:{
+    const moduleRemoteSession = await ModuleRemoteSession.findOne({
+      where: {
         mergeId: mergeId,
-          moduleId: moduleId,
-      }
-    })
+        moduleId: moduleId,
+      },
+    });
 
-   const merge =  await Merge.findOne({
-      where : {
-        id : mergeId
-      } , 
-      include : [
-        { model : Group }
-      ]
-    } )
+    const merge = await Merge.findOne({
+      where: {
+        id: mergeId,
+      },
+      include: [{ model: Group }],
+    });
 
-    for(let group of merge.Groups ){
+    for (let group of merge.Groups) {
       await GroupsNeedChangeTimetable.upsert({
-        groupId : group.id
-      })
+        groupId: group.id,
+      });
     }
 
-    return res.json({ message: "seccès modifer state module en merge" ,moduleRemoteSession  });
+    return res.json({
+      message: "seccès modifer state module en merge",
+      moduleRemoteSession,
+    });
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
+    return res.status(500).json({
+      errors: "Internal server error",
+      details: err.message,
+    });
   }
 };
 
@@ -129,6 +112,55 @@ const updateNbrHoursRemoteInWeek = async (req, res) => {
   }
 
   try {
+    // Get the current ModuleRemoteSession record to get formateurId and current hours
+    const currentRecord = await ModuleRemoteSession.findOne({
+      where: {
+        mergeId: mergeId,
+        moduleId: moduleId,
+      },
+    });
+
+    if (!currentRecord) {
+      return res.status(404).json({
+        errors: "ModuleRemoteSession record not found",
+      });
+    }
+
+    const currentHours = Number(currentRecord.nbr_hours_remote_session_in_week) || 0;
+    const requestedHours = Number(nbr_hours_remote_session_in_week);
+
+    // Get the first group from the merge for validation (we'll validate against one group)
+    const merge = await Merge.findOne({
+      where: { id: mergeId },
+      include: [{ model: Group }]
+    });
+
+    if (!merge || !merge.Groups || merge.Groups.length === 0) {
+      return res.status(404).json({
+        errors: "No groups found for this merge",
+      });
+    }
+
+    const firstGroupId = merge.Groups[0].id;
+
+    // Validate formateur availability before updating
+    const validationResult = await FormateurAvailabilityValidator.validateFormateurAvailability(
+      currentRecord.formateurId,
+      firstGroupId,
+      moduleId,
+      requestedHours,
+      'remote',
+      currentHours
+    );
+
+    if (!validationResult.isValid) {
+      return res.status(422).json({
+        errors: validationResult.message,
+        details: validationResult.details
+      });
+    }
+
+    // If validation passes, update the record
     const moduleRemoteSession = await ModuleRemoteSession.update(
       { nbr_hours_remote_session_in_week: nbr_hours_remote_session_in_week },
       {
@@ -139,30 +171,25 @@ const updateNbrHoursRemoteInWeek = async (req, res) => {
       }
     );
 
-
-    const groups=  await Merge.findOne({
-      where : {
-        id : mergeId
-      } , 
-      include : [
-        { model : Group }
-      ]
-    } )
-
-    for(let group of groups ){
+    // Update all groups in the merge
+    for (let group of merge.Groups) {
       await GroupsNeedChangeTimetable.upsert({
-        groupId : group.id
-      })
+        groupId: group.id
+      });
     }
 
+    return res.json({
+      message: "seccès modifer nbr_hours_remote_in_week module en merge",
+      validation: validationResult
+    });
 
   } catch (err) {
-    console.log(err);
+    // Removed console.log statements for production
+    return res.status(500).json({
+      errors: "Internal server error",
+      details: err.message
+    });
   }
-
-  return res.json({
-    message: "seccès modifer nbr_hours_remote_in_week module en merge",
-  });
 };
 
 module.exports = { index, show, updateStateModule, updateNbrHoursRemoteInWeek };

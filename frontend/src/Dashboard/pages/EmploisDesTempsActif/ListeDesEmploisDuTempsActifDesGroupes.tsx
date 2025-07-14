@@ -4,17 +4,26 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import { Link } from "react-router-dom";
 import ButtonNavigateBack from "../../../components/ButtonNavigateBack";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import PopupDeTelechargement from "../../../components/PopupDeTelechargement";
 import { filieresContext } from "../../../contextApi/filieresContext";
 import { telechargeToutLesEmploisActifDesGroupesPngSurZip } from "../../../utils/telechargeToutLesEmploisActifDesGroupesPngSurZip";
 import { handleNotification } from "../../../utils/notification";
 import api from "../../../api/apiConfig";
 
+// Add interface for timetable
+interface TimetableGroup {
+  id: number;
+  groupe: string;
+  code_branch: string;
+  label_branch: string;
+  valid_form: string;
+  nbr_hours_in_week: number;
+}
+
 export default function ListeDesEmploisDuTempsActifDesGroupes() {
-  const [timetablesActiveForGroups, setTimetableActiveForGroups] = useState([]);
-  const [timetablesActiveForGroupsFilter, setTimetableActiveForGroupsFilter] =
-    useState([]);
+  const [timetablesActiveForGroups, setTimetableActiveForGroups] = useState<TimetableGroup[]>([]);
+  const [timetablesActiveForGroupsFilter, setTimetableActiveForGroupsFilter] = useState<TimetableGroup[]>([]);
   const [afficherPopup, setAfficherPopup] = useState(false);
   const [valuePopup, setValuePopup] = useState("png");
   const [handleLogicTelechargement, setHandleLogicTelechargement] = useState(
@@ -23,7 +32,7 @@ export default function ListeDesEmploisDuTempsActifDesGroupes() {
   const [valueInputSearch, setValueInputSearch] = useState("");
   const { filiers } = useContext(filieresContext);
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const code_groupe = e.target.value;
     const groupesAfterFilter = timetablesActiveForGroups.filter((groupe) =>
       groupe.groupe.toLowerCase().includes(code_groupe.toLowerCase())
@@ -32,7 +41,7 @@ export default function ListeDesEmploisDuTempsActifDesGroupes() {
     setTimetableActiveForGroupsFilter(groupesAfterFilter);
   };
 
-  const handleFilterByFilier = (e) => {
+  const handleFilterByFilier = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const code_branch = e.target.value;
     if (code_branch == "") {
       setTimetableActiveForGroupsFilter(timetablesActiveForGroups);
@@ -94,6 +103,8 @@ export default function ListeDesEmploisDuTempsActifDesGroupes() {
       <div className="my-10">
         <div className="flex">
           <Input
+            name="search"
+            id="search"
             placeholder="Enter le code groupe..."
             className="!w-[500px] bg-gray-200"
             value={valueInputSearch}

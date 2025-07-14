@@ -25,7 +25,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Merge',
-    tableName : 'merges'
+    tableName : 'merges',
+    timestamps: true
   });
    Merge.associate = (models) => {
     Merge.belongsToMany(models.Group , { through : 'GroupMerges'})

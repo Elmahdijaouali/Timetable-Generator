@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "FormateurTimetable",
-      
+      timestamps: true
     }
   );
   FormateurTimetable.associate = (models) => {

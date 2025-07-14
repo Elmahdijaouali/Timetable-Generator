@@ -26,7 +26,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Branch',
-    tableName : 'branches'
+    tableName : 'branches',
+    timestamps: true
   });
 
   Branch.associate = (models) => {

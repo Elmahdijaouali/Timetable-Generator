@@ -29,11 +29,20 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      profileImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      dashboardBackground: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       sequelize,
       modelName: "Administrator",
-      tableName: "administrators",
+      tableName: "Administrators",
+      timestamps: true,
       indexes: [
         {
           unique: true, 

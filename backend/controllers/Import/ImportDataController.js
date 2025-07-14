@@ -1,5 +1,7 @@
 const XLSX = require("xlsx");
 const multer = require("multer");
+const colorManager = require("../../services/colorManager.js");
+const ModuleSchedulingValidator = require("../../services/moduleSchedulingValidator.js");
 const {
   Branch,
   Formateur,
@@ -10,284 +12,495 @@ const {
   GroupMerge,
   Merge,
   ModuleRemoteSession,
+  sequelize,
+  Setting
 } = require("../../models");
 
 const importData = async (req, res) => {
   if (!req.file) {
-    return res.json({ errors: "file excel is required  !" });
+    return res.json({ errors: "Le fichier Excel est requis !" });
   }
 
+  // Use transaction for atomicity and better performance
+  const transaction = await sequelize.transaction();
+
   try {
+    console.log("Starting high-performance import...");
+    const startTime = Date.now();
+
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet);
+    
     if (
       !rows[0]["Code Filière"] &&
       !rows[0]["Groupe"] &&
       !rows[0]["Code Module"] &&
       !rows[0]["Module"]
     ) {
-      return res.status(422).json({ errors: "choice crrect file !" });
+      await transaction.rollback();
+      return res.status(422).json({ errors: "Veuillez choisir un fichier correct !" });
     }
 
-    // return res.json(rows[0])
+    console.log(`Processing ${rows.length} rows...`);
 
-    // insert classroom unknown for handle adminisrtor try import info formateur before classroom
-
-    //  await Classroom.upsert({
-    //      label: "Teams",
-    //      is_available: true,
-    //    } );
+    // Create default classroom
     await Classroom.upsert({
       label: "UnKnown",
       is_available: true,
-    });
+    }, { transaction });
+
     const classroomDefault = await Classroom.findOne({
       where: { label: "UnKnown" },
+      transaction
     });
-    //  const classroomRemote = await Classroom.findOne({ where : { label : "Teams"}})
 
-    // data_json.forEach(async (row) => {
+    // Step 1: Collect all unique data for bulk operations
+    console.log("Step 1: Collecting unique data...");
+    
+    // Filter rows to only include those with "CDJ" as Créneau
+    const filteredRows = rows.filter(row => {
+      const creneau = row["Créneau"];
+      if (!creneau || creneau.toString().trim().toUpperCase() !== "CDJ") {
+        console.log(`Skipping row: Créneau = "${creneau}" (not CDJ)`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`Filtered to ${filteredRows.length} rows with CDJ time slot out of ${rows.length} total rows`);
+    
+    const uniqueBranches = new Map();
+    const uniqueMerges = new Map();
+    const uniqueGroups = new Map();
+    const uniqueModules = new Map();
+    const uniqueFormateurs = new Map();
+    const groupModuleFormateurs = [];
+    const moduleRemoteSessions = [];
 
-    for (let row of rows) {
-     
-      // =================== insert the branches =================
-      await Branch.upsert({
+    for (let row of filteredRows) {
+      // Collect branches
+      if (row["Code Filière"] && row["filière"]) {
+        uniqueBranches.set(row["Code Filière"], {
         code_branch: row["Code Filière"],
         label: row["filière"],
       });
+      }
 
-      // =================== insert the merge =================
-      let merge = null;
+      // Collect merges
       if (row["FusionGroupe"]) {
-        await Merge.upsert({
+        uniqueMerges.set(row["FusionGroupe"], {
           groups: row["FusionGroupe"],
-        });
-
-        merge = await Merge.findOne({
-          where: { groups: row["FusionGroupe"] },
         });
       }
 
-      // =================== insert the groups =================
-      const branch = await Branch.findOne({
-        where: { code_branch: row["Code Filière"] },
-      });
-
-      await Group.upsert({
+      // Collect groups
+      if (row["Groupe"] && row["Code Filière"]) {
+        uniqueGroups.set(row["Groupe"], {
         code_group: row["Groupe"],
         effective: row["Effectif Groupe"],
         year_of_formation: row["Année de formation"],
-        branchId: branch.id,
-        niveau :  row["Niveau"]
-      });
-
-      const group = await Group.findOne({
-        where: { code_group: row["Groupe"] },
-      });
-
-      // =================== insert the groupmerge =================
-      if (merge && group) {
-        await merge.addGroup(group.id);
-        // await GroupMerge.upsert({
-        //   groupId : group.id ,
-        //   mergeId : merge.id
-        // })
+          code_branch: row["Code Filière"], // Reference for later
+          niveau: row["Niveau"]
+        });
       }
 
-      // =================== insert the modules =================
-      //   await Module.findOrCreate({
-      //     code_module: row["Code Module"],
-      //     label: row["Module"],
-      //     is_regionnal: row["Régional"] == "O" ? true : false,
-      //     mhp_s1: row["MHP S1 DRIF"],
-      //     mhsyn_s1: row["MHSYN S1 DRIF"],
-      //     mhp_s2: row["MHP S2 DRIF"],
-      //     mhsyn_s2: row["MHSYN S2 DRIF"],
-
-      //   },
-
-      // );
-
-      await Module.findOrCreate({
-        where: {
+      // Collect modules (normalize key)
+      if (row["Code Module"] && row["Module"]) {
+        const codeModuleNorm = String(row["Code Module"]).trim().toLowerCase();
+        const labelNorm = String(row["Module"]).trim().toLowerCase();
+        const key = `${codeModuleNorm}-${labelNorm}`;
+        if (uniqueModules.has(key)) {
+          console.warn(`Duplicate module in Excel: code='${row["Code Module"]}', label='${row["Module"]}'`);
+        }
+        uniqueModules.set(key, {
           code_module: row["Code Module"],
           label: row["Module"],
-        },
-        defaults: {
           is_regionnal: row["Régional"] === "O",
           mhp_s1: row["MHP S1 DRIF"],
           mhsyn_s1: row["MHSYN S1 DRIF"],
           mhp_s2: row["MHP S2 DRIF"],
           mhsyn_s2: row["MHSYN S2 DRIF"],
-          color : getRandomColor()
-        },
-      });
-
-      // =================== insert the branchmodule =================
-      let module;
-      module = await Module.findOne({
-        where: { code_module: row["Code Module"], label: row["Module"] },
-      });
-
-      await branch.addModule(module.id);
-
-      //===================== insert the formateur ===================
-
-      if (row["Mle Affecté Présentiel Actif"]) {
-        const formateur = await Formateur.findOne({
-          where: { mle_formateur: row["Mle Affecté Présentiel Actif"] },
+          color: colorManager.getColorForModule(row["Module"])
         });
-        await Formateur.upsert({
+      }
+
+      // Collect formateurs
+      if (row["Mle Affecté Présentiel Actif"] && row["Formateur Affecté Présentiel Actif"]) {
+        uniqueFormateurs.set(row["Mle Affecté Présentiel Actif"], {
           mle_formateur: row["Mle Affecté Présentiel Actif"],
           name: row["Formateur Affecté Présentiel Actif"],
           is_available: true,
-          classroomId: formateur ? formateur.classroomId : classroomDefault.id,
+          classroomId: classroomDefault.id,
         });
       }
 
-      if (row["Mle Affecté Syn Actif"]) {
-        const formateur = await Formateur.findOne({
-          where: { mle_formateur: row["Mle Affecté Syn Actif"] },
-        });
-        await Formateur.upsert({
+      if (row["Mle Affecté Syn Actif"] && row["Formateur Affecté Syn Actif"]) {
+        uniqueFormateurs.set(row["Mle Affecté Syn Actif"], {
           mle_formateur: row["Mle Affecté Syn Actif"],
           name: row["Formateur Affecté Syn Actif"],
           is_available: true,
-          classroomId: formateur ? formateur.classroomId : classroomDefault.id,
+          classroomId: classroomDefault.id,
+        });
+      }
+    }
+
+    // Step 2: Bulk upsert branches
+    console.log("Step 2: Bulk upserting branches...");
+    const branchData = Array.from(uniqueBranches.values());
+    await Branch.bulkCreate(branchData, {
+      updateOnDuplicate: ['label'],
+      transaction
+    });
+
+    // Get branch lookup map
+    const branches = await Branch.findAll({ transaction });
+    const branchMap = new Map();
+    branches.forEach(b => branchMap.set(b.code_branch, b.id));
+
+    // Step 3: Bulk upsert merges
+    console.log("Step 3: Bulk upserting merges...");
+    const mergeData = Array.from(uniqueMerges.values());
+    await Merge.bulkCreate(mergeData, {
+      updateOnDuplicate: ['groups'],
+      transaction
+    });
+
+    // Get merge lookup map
+    const merges = await Merge.findAll({ transaction });
+    const mergeMap = new Map();
+    merges.forEach(m => mergeMap.set(m.groups, m.id));
+
+    // Step 4: Bulk upsert groups (with branchId) - ONLY FOR GROUPS WITH MODULES
+    console.log("Step 4: Bulk upserting groups...");
+    
+    // First, determine which groups actually have modules
+    const groupsWithModules = new Set();
+    for (let row of filteredRows) {
+      if (row["Groupe"] && row["Code Module"] && row["Module"]) {
+        groupsWithModules.add(row["Groupe"]);
+      }
+    }
+    
+    console.log(`Found ${groupsWithModules.size} groups with modules out of ${uniqueGroups.size} total groups`);
+    
+    // Only create groups that have modules
+    const groupData = Array.from(uniqueGroups.values())
+      .filter(group => groupsWithModules.has(group.code_group))
+      .map(group => ({
+      ...group,
+      branchId: branchMap.get(group.code_branch)
+      }))
+      .filter(group => group.branchId);
+
+    await Group.bulkCreate(groupData, {
+      updateOnDuplicate: ['effective', 'year_of_formation', 'branchId', 'niveau'],
+      transaction
+    });
+
+    // Get group lookup map
+    const groups = await Group.findAll({ transaction });
+    const groupMap = new Map();
+    groups.forEach(g => groupMap.set(g.code_group, g.id));
+
+    // Step 5: Bulk upsert modules
+    console.log("Step 5: Bulk upserting modules...");
+    const moduleData = Array.from(uniqueModules.values());
+
+    // Fetch all existing modules from the database and build a normalized key set
+    const existingModules = await Module.findAll({ attributes: ['code_module', 'label'] });
+    const existingModuleKeys = new Set(
+      existingModules.map(m => `${String(m.code_module).trim().toLowerCase()}-${String(m.label).trim().toLowerCase()}`)
+    );
+
+    // Filter out modules that already exist in the database
+    const modulesToInsert = moduleData.filter(m => {
+      const key = `${String(m.code_module).trim().toLowerCase()}-${String(m.label).trim().toLowerCase()}`;
+      if (existingModuleKeys.has(key)) {
+        console.warn(`Module already exists in DB, skipping insert: code='${m.code_module}', label='${m.label}'`);
+        return false;
+      }
+      return true;
+    });
+
+    await Module.bulkCreate(modulesToInsert, {
+      updateOnDuplicate: ['label', 'is_regionnal', 'mhp_s1', 'mhsyn_s1', 'mhp_s2', 'mhsyn_s2', 'color'],
+      transaction
+    });
+
+    // Get module lookup map
+    const modules = await Module.findAll({ transaction });
+    const moduleMap = new Map();
+    modules.forEach(m => moduleMap.set(`${m.code_module}-${m.label}`, m.id));
+
+    // Step 6: Bulk upsert formateurs
+    console.log("Step 6: Bulk upserting formateurs...");
+    const formateurData = Array.from(uniqueFormateurs.values());
+
+    // Find the 'UnKnown' classroom id
+    const unknownClassroom = await Classroom.findOne({ where: { label: 'UnKnown' }, transaction });
+    const unknownClassroomId = unknownClassroom ? unknownClassroom.id : null;
+
+    // For each formateur, if classroomId is 'UnKnown', remove it from the upsert data
+    const formateurDataForUpsert = formateurData.map(f => {
+      if (f.classroomId === unknownClassroomId) {
+        // Do not update classroomId if it's 'UnKnown'
+        const { classroomId, ...rest } = f;
+        return rest;
+      }
+      return f;
+    });
+
+    await Formateur.bulkCreate(formateurDataForUpsert, {
+      updateOnDuplicate: ['name', 'is_available'], // do not update classroomId if 'UnKnown'
+      transaction
+    });
+
+    // Get formateur lookup map
+    const formateurs = await Formateur.findAll({ transaction });
+    const formateurMap = new Map();
+    formateurs.forEach(f => formateurMap.set(f.mle_formateur, f.id));
+
+    // Step 7: Process associations and complex relationships
+    console.log("Step 7: Processing associations...");
+    
+    // Collect group-module data for validation
+    const groupModuleData = [];
+    
+    for (let row of filteredRows) {
+      // Only include modules that are started (fit in the weekly limit)
+      if (row._force_is_started === false) continue;
+      const groupId = groupMap.get(row["Groupe"]);
+      const moduleId = moduleMap.get(`${row["Code Module"]}-${row["Module"]}`);
+      const mergeId = row["FusionGroupe"] ? mergeMap.get(row["FusionGroupe"]) : null;
+
+      // Group-Merge associations
+      if (groupId && mergeId) {
+        await GroupMerge.findOrCreate({
+          where: { groupId, mergeId },
+          defaults: { groupId, mergeId },
+          transaction
         });
       }
 
-      //===================== insert the GroupModuleFormateur ===================
-      let formateur_syn, formateur_presential;
-      if (row["Mle Affecté Présentiel Actif"] && row["Mle Affecté Syn Actif"]) {
-        formateur_presential = await Formateur.findOne({
-          where: { mle_formateur: row["Mle Affecté Présentiel Actif"] },
+      // Collect data for module scheduling validation
+      if (groupId && moduleId && row["Mle Affecté Présentiel Actif"] && row["Mle Affecté Syn Actif"]) {
+        groupModuleData.push({
+          groupId,
+          moduleId,
+          mhp_realise: row["MH Réalisée Présentiel"],
+          mhsyn_realise: row["MH Réalisée Sync"],
+          validate_efm: row["Validation EFM"] == "oui" ? true : false
         });
-        formateur_syn = await Formateur.findOne({
-          where: { mle_formateur: row["Mle Affecté Syn Actif"] },
-        });
-        const group = await Group.findOne({
-          where: { code_group: row["Groupe"] },
-        });
+      }
+    }
 
-        if (
-          formateur_presential != null &&
-          formateur_syn != null &&
-          group != null
-        ) {
-          if (formateur_presential.id == formateur_syn.id) {
-            await GroupModuleFormateur.findOrCreate({
-                where:{
-                  formateurId: formateur_presential.id,
-                  moduleId: module.id,
-                  groupId: group.id,
-                },
-                defaults : {
-                  formateurId: formateur_presential.id,
-                  moduleId: module.id,
-                  groupId: group.id,
-                  mhp_realise: row["MH Réalisée Présentiel"],
-                  mhsyn_realise: row["MH Réalisée Sync"],
-                  nbr_hours_presential_in_week:
-                    getNumberHoursModulePresentailInWeek(module),
-                  nbr_hours_remote_in_week:
-                    getNumberHoursModuleRemoteInWeek(module),
-                  is_started: checkModuleWithGroupIsStarted(module),
-                  nbr_cc: row["NB CC"],
-                  validate_efm: row["Validation EFM"] == "oui" ? true : false,
-                }
-  
-            });
-          } else {
-            await GroupModuleFormateur.findOrCreate({
-              where:{
-                formateurId: formateur_presential.id,
-                moduleId: module.id,
-                groupId: group.id,
-              },
-              defaults : {
-                formateurId: formateur_presential.id,
-                moduleId: module.id,
-                groupId: group.id,
-                mhp_realise: row["MH Réalisée Présentiel"],
-                mhsyn_realise: row["MH Réalisée Sync"],
-                nbr_hours_presential_in_week:
-                  getNumberHoursModulePresentailInWeek(module),
-                nbr_hours_remote_in_week:
-                  getNumberHoursModuleRemoteInWeek(module),
-                is_started: checkModuleWithGroupIsStarted(module),
-                nbr_cc: row["NB CC"],
-                validate_efm: row["Validation EFM"] == "oui" ? true : false,
-              }
-            
-            });
+    // Debug: Log which modules are being validated
+    const debugGroupModules = {};
+    for (const item of groupModuleData) {
+      if (!debugGroupModules[item.groupId]) debugGroupModules[item.groupId] = [];
+      const moduleObj = modules.find(m => m.id === item.moduleId);
+      debugGroupModules[item.groupId].push(moduleObj ? moduleObj.code_module : item.moduleId);
+    }
+    console.log('VALIDATING ONLY STARTED MODULES PER GROUP:');
+    Object.entries(debugGroupModules).forEach(([groupId, moduleCodes]) => {
+      console.log(`  Group ${groupId}: ${moduleCodes.join(', ')}`);
+    });
 
-            await GroupModuleFormateur.findOrCreate({
-              where:{
-                formateurId: formateur_presential.id,
-                moduleId: module.id,
-                groupId: group.id,
-              },
-              defaults : {
-                formateurId: formateur_syn.id,
-                moduleId: module.id,
-                groupId: group.id,
-                mhp_realise: row["MH Réalisée Présentiel"],
-                mhsyn_realise: row["MH Réalisée Sync"],
-                nbr_hours_presential_in_week:
-                  getNumberHoursModulePresentailInWeek(module),
-                nbr_hours_remote_in_week:
-                  getNumberHoursModuleRemoteInWeek(module),
-                is_started: checkModuleWithGroupIsStarted(module),
-                nbr_cc: row["NB CC"],
-                validate_efm: row["Validation EFM"] == "oui" ? true : false,
-              }
-             
+    // Remove adjustment logic that depended on validationResult
+    // (No need to apply adjustments or update groupModuleData)
+
+    // --- UPDATED LOGIC: Only start modules if enough duration remains ---
+    // Build a map: groupId -> [{ row, module, presentialHours }]
+    const groupPresentialMap = {};
+    for (let row of filteredRows) {
+      const groupId = groupMap.get(row["Groupe"]);
+      const moduleId = moduleMap.get(`${row["Code Module"]}-${row["Module"]}`);
+      if (!groupId || !moduleId) continue;
+      const module = modules.find(m => m.id === moduleId);
+      if (!module) continue;
+      const presentialHours = getNumberHoursModulePresentailInWeek(module);
+      if (!groupPresentialMap[groupId]) groupPresentialMap[groupId] = [];
+      groupPresentialMap[groupId].push({ row, module, presentialHours });
+    }
+    // For each group, only start modules if enough duration remains
+    Object.entries(groupPresentialMap).forEach(async ([groupId, moduleList]) => {
+      // Fetch max weekly hours from settings
+      let remaining = 35;
+      try {
+        const presentialSetting = await Setting.findOne({ where: { key: 'max_presential_hours' } });
+        if (presentialSetting && !isNaN(Number(presentialSetting.value))) {
+          remaining = Number(presentialSetting.value);
+        }
+      } catch (e) {}
+      // Keep order as in file (or sort by priority if needed)
+      for (let m of moduleList) {
+        if (remaining >= m.presentialHours) {
+          m.row._deactivated = false;
+          m.row._force_is_started = true;
+          remaining -= m.presentialHours;
+        } else {
+          m.row._deactivated = false;
+          m.row._force_is_started = false;
+        }
+      }
+    });
+    // --- END UPDATED LOGIC ---
+
+    // --- VALIDATION FOR REPORTING ONLY ---
+    // (Removed: no validation step, import proceeds based on is_started logic only)
+    // --- END VALIDATION FOR REPORTING ONLY ---
+
+    // Continue with original association processing using adjusted data
+    for (let row of filteredRows) {
+      if (row._deactivated) continue; // (kept for compatibility, but not used now)
+      const groupId = groupMap.get(row["Groupe"]);
+      const moduleId = moduleMap.get(`${row["Code Module"]}-${row["Module"]}`);
+      const mergeId = row["FusionGroupe"] ? mergeMap.get(row["FusionGroupe"]) : null;
+
+      // Group-Module-Formateur associations
+      if (groupId && moduleId && row["Mle Affecté Présentiel Actif"] && row["Mle Affecté Syn Actif"]) {
+        const formateurPresentialId = formateurMap.get(row["Mle Affecté Présentiel Actif"]);
+        const formateurSynId = formateurMap.get(row["Mle Affecté Syn Actif"]);
+
+        if (formateurPresentialId && formateurSynId) {
+          const module = modules.find(m => m.id === moduleId);
+          
+          // Get adjusted hours if available
+          const adjustedData = groupModuleData.find(item => 
+            item.groupId === groupId && item.moduleId === moduleId
+          );
+          
+          const presentialHours = adjustedData && adjustedData.adjustmentApplied 
+            ? adjustedData.adjustedHours 
+            : getNumberHoursModulePresentailInWeek(module);
+          
+          const remoteHours = getNumberHoursModuleRemoteInWeek(module);
+          
+          // Use _force_is_started if set
+          const isStarted = typeof row._force_is_started === 'boolean' ? row._force_is_started : checkModuleWithGroupIsStarted(module);
+          
+          // Create ONLY ONE association per module-group combination
+          // Use the presential formateur as the primary formateur
+          await GroupModuleFormateur.findOrCreate({
+            where: {
+              moduleId: moduleId,
+              groupId: groupId,
+            },
+            defaults: {
+              formateurId: formateurPresentialId, // Primary formateur (presential)
+              moduleId: moduleId,
+              groupId: groupId,
+              mhp_realise: row["MH Réalisée Présentiel"],
+              mhsyn_realise: row["MH Réalisée Sync"],
+              nbr_hours_presential_in_week: presentialHours,
+              nbr_hours_remote_in_week: remoteHours,
+              is_started: isStarted,
+              nbr_cc: row["NB CC"],
+              validate_efm: row["Validation EFM"] == "oui" ? true : false,
+            },
+            transaction
+          });
+
+          // ModuleRemoteSession (for remote sessions)
+          if (mergeId) {
+            await ModuleRemoteSession.upsert({
+              formateurId: formateurSynId,
+              moduleId: moduleId,
+              mergeId: mergeId,
+              nbr_hours_remote_session_in_week: remoteHours,
+              is_started: checkModuleIsStartedRemoteSessionWithMergeGroup(module),
+            }, {
+              conflictFields: ["mergeId", "moduleId", "formateurId"],
+              transaction
             });
           }
         }
       }
+    }
 
-      // =================== insert the moduleremotesession =================
-      module = await Module.findOne({
-        where: { code_module: row["Code Module"], label: row["Module"] },
-      });
-
-      formateur_syn = await Formateur.findOne({
-        where: { mle_formateur: row["Mle Affecté Syn Actif"] },
-      });
-
-      if (formateur_syn && module && merge) {
-        await ModuleRemoteSession.upsert(
-          {
-            formateurId: formateur_syn.id,
-            moduleId: module.id,
-            mergeId: merge.id,
-            nbr_hours_remote_session_in_week:
-              getNumberHoursModuleRemoteInWeek(module),
-            is_started: checkModuleIsStartedRemoteSessionWithMergeGroup(module),
-          },
-          {
-            conflictFields: ["mergeId", "moduleId", "formateurId"],
-          }
-        );
+    // Step 8: Create branch-module associations
+    console.log("Step 8: Creating branch-module associations...");
+    const branchModuleAssociations = [];
+    for (let row of filteredRows) {
+      const branchId = branchMap.get(row["Code Filière"]);
+      const moduleId = moduleMap.get(`${row["Code Module"]}-${row["Module"]}`);
+      
+      if (branchId && moduleId) {
+        branchModuleAssociations.push({ branchId, moduleId });
       }
     }
 
-    // );
-  } catch (err) {
-    console.log("Error file not read :", err);
-    return res.status(422).json({ errors: " file not read " });
-  }
+    // Use bulkCreate for branch-module associations
+    if (branchModuleAssociations.length > 0) {
+      await sequelize.models.BranchModule.bulkCreate(branchModuleAssociations, {
+        ignoreDuplicates: true,
+        transaction
+      });
+    }
 
-  return res.json({ message: "sucess importation " });
+    // Step 9: Cleanup - Remove groups without modules
+    console.log("Step 9: Cleaning up groups without modules...");
+    const groupsWithModulesInDB = await GroupModuleFormateur.findAll({
+      attributes: ['groupId'],
+      group: ['groupId'],
+      transaction
+    });
+    
+    const groupsWithModulesIds = new Set(groupsWithModulesInDB.map(g => g.groupId));
+    const allGroups = await Group.findAll({ transaction });
+    
+    const groupsToDelete = allGroups.filter(group => !groupsWithModulesIds.has(group.id));
+    
+    if (groupsToDelete.length > 0) {
+      console.log(`Removing ${groupsToDelete.length} groups without modules: ${groupsToDelete.map(g => g.code_group).join(', ')}`);
+      
+      for (const group of groupsToDelete) {
+        await Group.destroy({
+          where: { id: group.id },
+          transaction
+        });
+      }
+    } else {
+      console.log("No groups without modules found");
+    }
+
+    // Commit transaction
+    await transaction.commit();
+
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    
+    console.log(`Import completed in ${duration.toFixed(2)} seconds!`);
+    console.log(`Processed ${filteredRows.length} rows with CDJ time slot out of ${rows.length} total rows`);
+    console.log(`Created/Updated ${uniqueBranches.size} branches`);
+    console.log(`Created/Updated ${uniqueGroups.size} groups`);
+    console.log(`Created/Updated ${uniqueModules.size} modules`);
+    console.log(`Created/Updated ${uniqueFormateurs.size} formateurs`);
+
+    return res.json({ 
+      message: "Importation réussie",
+      performance: {
+        duration: `${duration.toFixed(2)} secondes`,
+        rowsProcessed: filteredRows.length,
+        totalRows: rows.length,
+        cdjRows: filteredRows.length,
+        branches: uniqueBranches.size,
+        groups: uniqueGroups.size,
+        modules: uniqueModules.size,
+        formateurs: uniqueFormateurs.size
+      }
+    });
+
+  } catch (err) {
+    await transaction.rollback();
+    console.error("Import error:", err);
+    return res.status(422).json({ errors: "Erreur lors de la lecture du fichier.", details: err.message });
+  }
 };
 
-
-
-
+// Helper functions (unchanged)
 const getNumberHoursModulePresentailInWeek = (module) => {
   const totalHoursInModulePresentail = module.mhp_s1 + module.mhp_s2;
 
@@ -334,15 +547,17 @@ const checkModuleIsStartedRemoteSessionWithMergeGroup = (module) => {
   return false;
 };
 
-
+// Legacy functions for backward compatibility
 const getRandomColor = () => {
-   const str = '123456789ABCDEF'
-   let color = '#'
-   for(let i = 0 ; i < 6 ; i++ ){
-      color += str[Math.floor(Math.random() * str.length )]
-   }
+  return colorManager.getContrastSafeHexColor();
+};
 
-   return color
-}
+const getContrastSafeColor = () => {
+  return colorManager.getContrastSafeHSLColor();
+};
+
+const getHighContrastColor = () => {
+  return colorManager.getContrastSafeHexColor();
+};
 
 module.exports = { importData };

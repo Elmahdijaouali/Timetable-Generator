@@ -50,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "Session",
       tableName: "sessions",
+      timestamps: true
     }
   );
   Session.associate = (models) => {

@@ -1,4 +1,5 @@
 const generateTimetableRemoteForEveryMerge = require("./Generate-remote-timetable.js");
+const EnhancedTimetableGenerator = require("../../services/enhancedTimetableGenerator.js");
 const {
   Group,
   Merge,
@@ -28,7 +29,9 @@ const {
   checkIfSessionWithFormateurTakenByGroup,
   checkFormateurAvailabilityForGroup ,
   getValidTimeShotsForFormateurDay , 
-  isTimeshotTaken
+  isTimeshotTaken,
+  canAddSessionWithGapRule,
+  findAlternativeTimeSlot
 } = require("./constraints.js");
 
 const { sortSessionInDay } = require("./helper.js");
@@ -142,7 +145,8 @@ const placeSessionWithValidation = async (timetable, groupsTimetables, moduleSes
         isAvailable && 
         canAddSessionToDay(timetable, indexDay, moduleSession) &&
         checkIfSessionWithFormateurTakenByGroup(groupsTimetables, session, randomDay)  &&
-        (indexDay !== 5 || canAddSessionToDaySamedi(timetable, indexDay, validatedSession)) 
+        (indexDay !== 5 || canAddSessionToDaySamedi(timetable, indexDay, validatedSession)) &&
+        canAddSessionWithGapRule(timetable[indexDay][dayKey], validatedSession)
         
       ) {
 
@@ -168,12 +172,14 @@ const placeSessionWithValidation = async (timetable, groupsTimetables, moduleSes
             timeShot: checkIfTimeshotTakenInDayEdit(timetable[indexDay][dayKey], nextTime),
           };
            
-             
-          // const finalSessionTwo = checkIfHaveSessionRemoteInDay(timetable[indexDay][dayKey], sessionTwo);
+          // Apply gap rule validation to the second session
+          const validatedSessionTwo = checkIfHaveSessionRemoteInDay(timetable[indexDay][dayKey], sessionTwo);
+          
           while(true){
              
-            if(checkIfSessionWithFormateurTakenByGroup(groupsTimetables, sessionTwo, randomDay) ){
-              pushSessionToDay(timetable[indexDay][dayKey], sessionTwo);
+            if(checkIfSessionWithFormateurTakenByGroup(groupsTimetables, validatedSessionTwo, randomDay) &&
+               canAddSessionWithGapRule(timetable[indexDay][dayKey], validatedSessionTwo)){
+              pushSessionToDay(timetable[indexDay][dayKey], validatedSessionTwo);
               break
             }
             
@@ -489,48 +495,88 @@ const generate =async (valide_a_partir_de) => {
 }
 
 
-const generate_timetables = async (req , res) => {
- 
- 
-    const { valide_a_partir_de } = req.body;
+const generate_timetables = async (req, res) => {
+  const { valide_a_partir_de, maxAttempts = 50 } = req.body;
 
-    if (!valide_a_partir_de) {
-      return res.status(400).json({ errors: 'valide_a_partir_de is required.' });
-    }
+  if (!valide_a_partir_de) {
+    return res.status(400).json({ errors: 'valide_a_partir_de is required.' });
+  }
+
+  const timetablesFormateur = await FormateurTimetable.findOne();
+  if (!timetablesFormateur) {
+    return res.status(422).json({ "errors": 'before generate timetable group , must generate timetables formateurs !!' });
+  }
+
+  const parsedDate = new Date(valide_a_partir_de);
+  const now = new Date();
+
+  if (isNaN(parsedDate.getTime()) || parsedDate < now) {
+    return res.status(400).json({ errors: 'valide_a_partir_de must be a valid future date.' });
+  }
+
+  try {
+    console.log(`Starting enhanced timetable generation with ${maxAttempts} max attempts`);
     
-    const timetablesFormateur = await FormateurTimetable.findOne()
-    if(!timetablesFormateur){
-       return res.status(422).json({"errors" : 'before generate timetable group , must generate timetables formateurs !!'})
-    }
-
-    const parsedDate = new Date(valide_a_partir_de);
-    const now = new Date();
+    // Create enhanced generator instance
+    const enhancedGenerator = new EnhancedTimetableGenerator(maxAttempts);
     
-   
-    if (isNaN(parsedDate.getTime()) || parsedDate < now) {
-      return res.status(400).json({ errors: 'valide_a_partir_de must be a valid future date.' });
+    // Generate timetables with enhanced validation and retry logic
+    const results = await enhancedGenerator.generateAllTimetables(valide_a_partir_de, {
+      maxAttempts,
+      enableValidation: true,
+      enableRetry: true
+    });
+
+    // Generate comprehensive report
+    const report = enhancedGenerator.generateComprehensiveReport(results);
+    console.log(report);
+
+    // Collect all deactivated modules for summary
+    const allDeactivatedModules = results.groups
+      .filter(group => group.deactivatedModules && group.deactivatedModules.length > 0)
+      .flatMap(group => 
+        group.deactivatedModules.map(module => ({
+          ...module,
+          groupCode: group.groupCode
+        }))
+      );
+
+    // Create user-friendly message
+    let message = 'Enhanced timetable generation completed successfully';
+    if (allDeactivatedModules.length > 0) {
+      message += `. ${allDeactivatedModules.length} module(s) were deactivated to resolve scheduling constraints.`;
     }
 
-   try{
-        
-      let timetables 
-      const timetablesDB = await Timetable.findAll({})
+    if (results.success) {
+      return res.json({
+        message: message,
+        success: true,
+        stats: results.stats,
+        groups: results.groups,
+        deactivatedModules: allDeactivatedModules,
+        report: report
+      });
+    } else {
+      return res.status(422).json({
+        message: 'Timetable generation completed with errors',
+        success: false,
+        stats: results.stats,
+        groups: results.groups,
+        deactivatedModules: allDeactivatedModules,
+        errors: results.errors,
+        report: report
+      });
+    }
 
-      if( timetablesDB.length > 0){
-         timetables = await generate(valide_a_partir_de)
-      }else{
-         timetables = await first_generate(valide_a_partir_de)
-      }
-
-      await GroupsNeedChangeTimetable.destroy({ truncate : true})
-
-      return res.json({ "message" : 'seccéss generate timetable' , "data" : timetables} )
-
-   }catch(err){
-     console.log('Error generate timetables' , err)
-     res.json(err)
-   }
-}
+  } catch (err) {
+    console.error('Error in enhanced timetable generation:', err);
+    return res.status(500).json({
+      message: 'Timetable generation failed',
+      success: false,
+      error: err.message
+    });
+  }
+};
 
 
 

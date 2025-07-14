@@ -28,14 +28,14 @@ function startBackend() {
         }
       });
       (_b = backendProcess.stderr) == null ? void 0 : _b.on("data", (data) => {
-        // Removed console.error(`Backend Error: ${data.toString().trim()}`);
+        console.error(`Backend Error: ${data.toString().trim()}`);
       });
       backendProcess.on("close", (code) => {
-        // Removed console.log(`Backend process exited with code ${code}`);
+        console.log(`Backend process exited with code ${code}`);
         backendProcess = null;
       });
       backendProcess.on("error", (err) => {
-        // Removed console.error(`Error starting backend process: ${err.message}`);
+        console.error(`Error starting backend process: ${err.message}`);
         backendProcess = null;
         reject(err);
       });
@@ -46,7 +46,7 @@ function startBackend() {
       }, 1e4);
     });
     testSocket.on("connect", () => {
-      // Removed console.log("Backend is already running on port 8002");
+      console.log("Backend is already running on port 8002");
       testSocket.destroy();
       resolve();
     });
@@ -55,11 +55,11 @@ function startBackend() {
 }
 function stopBackend() {
   if (backendProcess) {
-    // Removed console.log("Stopping backend process...");
+    console.log("Stopping backend process...");
     backendProcess.kill("SIGTERM");
     setTimeout(() => {
       if (backendProcess && !backendProcess.killed) {
-        // Removed console.log("Force killing backend process...");
+        console.log("Force killing backend process...");
         backendProcess.kill("SIGKILL");
       }
     }, 5e3);
@@ -119,7 +119,7 @@ app.whenReady().then(async () => {
     await startBackend();
     createWindow();
   } catch (error) {
-    // Removed console.error("Failed to start backend:", error);
+    console.error("Failed to start backend:", error);
     createWindow();
   }
 });
