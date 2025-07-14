@@ -25,7 +25,7 @@ export default function ListeDesFuision() {
         setFilterFuision(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 

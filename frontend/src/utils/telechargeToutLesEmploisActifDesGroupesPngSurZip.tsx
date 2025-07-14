@@ -20,7 +20,8 @@ interface TimetableGroupData {
 }
 
 export const telechargeToutLesEmploisActifDesGroupesPngSurZip = async (
-  timetablesActiveForGroups: TimetableActive[]
+  timetablesActiveForGroups: TimetableActive[],
+  onProgress?: (current: number, total: number) => void
 ) => {
   const zip = new JSZip();
 
@@ -34,7 +35,8 @@ export const telechargeToutLesEmploisActifDesGroupesPngSurZip = async (
   document.body.appendChild(container);
 
   const randStr = Math.random().toString(36).substr(2, 9);
-  for (const group of timetablesActiveForGroups) {
+  for (let i = 0; i < timetablesActiveForGroups.length; i++) {
+    const group = timetablesActiveForGroups[i];
     // Get full data
     const { data: timetableGroupDetails }: { data: TimetableGroupData } =
       await api.get(`/timetables/${group.id}`);
@@ -78,6 +80,10 @@ export const telechargeToutLesEmploisActifDesGroupesPngSurZip = async (
     // Clean up
     root.unmount();
     container.removeChild(wrapper);
+
+    // Progress callback
+    if (onProgress) onProgress(i + 1, timetablesActiveForGroups.length);
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
   document.body.removeChild(container); // remove the main container

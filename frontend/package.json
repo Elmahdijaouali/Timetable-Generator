@@ -7,12 +7,17 @@
     "dev": "concurrently \"npm:dev:*\"",
     "dev:frontend": "vite",
     "dev:backend": "cd ../backend && npm run dev",
-    "build": "tsc && vite build && electron-builder",
+    "build": "tsc && vite build",
+    "build:electron": "npm run build && electron-builder",
+    "build:linux": "npm run build && electron-builder --linux",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
@@ -24,6 +29,7 @@
     "html2canvas": "^1.4.1",
     "jszip": "^3.10.1",
     "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.4.1",
     "tailwindcss": "^4.1.2"

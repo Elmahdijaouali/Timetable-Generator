@@ -11,6 +11,13 @@ interface Module {
   module_label: string;
   is_started: boolean;
   nbr_hours_presential_in_week: number;
+  validate_efm?: boolean;
+  mhp_realise?: number;
+  mhsyn_realise?: number;
+  mhp_s1?: number;
+  mhp_s2?: number;
+  mhsyn_s1?: number;
+  mhsyn_s2?: number;
 }
 
 interface GroupeWithModules {
@@ -36,7 +43,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
         setGroupeWithModules(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -65,7 +72,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
         fetchData();
       }
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -74,7 +81,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
     moduleId: number,
     state: string
   ) => {
-    console.log("group id", groupeId, "module id ", moduleId, "state", state);
+    // console.log("group id", groupeId, "module id ", moduleId, "state", state);
     try {
       const is_started = state == "actif" ? true : false;
       const res = await api.patch(`/groups/${groupeId}/module/${moduleId}`, {
@@ -126,10 +133,10 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
         <div>
           {groupeWithModules.modules &&
             groupeWithModules.modules
-              .filter((module) => module.is_started == true)
+              .filter((module) => module.is_started == true && module.validate_efm !== true)
               .map((module) => {
                 return (
-                  <div className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 ">
+                  <div key={module.moduleId} className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 border border-gray-300">
                     <p className="text-xl">{module.module_label}</p>
                     <div className="flex w-[30%] justify-end">
                       <div>
@@ -197,7 +204,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
 
           {groupeWithModules.modules &&
             groupeWithModules.modules.filter(
-              (module) => module.is_started == true
+              (module) => module.is_started == true && module.validate_efm !== true
             ).length == 0 && (
               <div>
                 <p className="text-center my-10">No Modules ouverts</p>
@@ -210,10 +217,10 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
         <div>
           {groupeWithModules.modules &&
             groupeWithModules.modules
-              .filter((module) => module.is_started == false)
+              .filter((module) => module.is_started == false && module.validate_efm !== true)
               .map((module) => {
                 return (
-                  <div className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 ">
+                  <div key={module.moduleId} className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 border border-gray-300">
                     <p className="text-xl">{module.module_label}</p>
                     <div className="flex w-[30%] justify-end">
                       <div>
@@ -280,17 +287,116 @@ export default function PersenaliserLesNombresHeuresParSemaineDeGroupe() {
               })}
           {groupeWithModules.modules &&
             groupeWithModules.modules.filter(
-              (module) => module.is_started == false
+              (module) => module.is_started == false && module.validate_efm !== true
             ).length == 0 && (
               <div>
                 <p className="text-center my-10">No avoir Les auters modules</p>
               </div>
             )}
         </div>
+
+        <h2 className="text-2xl my-5 font-bold text-green-600">
+          Les modules finis
+        </h2>
+        <div>
+          {groupeWithModules.modules &&
+            groupeWithModules.modules
+              .filter((module) => module.validate_efm === true)
+              .map((module) => {
+                return (
+                  <div
+                    key={module.moduleId}
+                    className="flex justify-between items-center p-5 rounded-2xl bg-green-100 border-2 border-green-300 my-3 lg:px-20 "
+                  >
+                    <div className="flex items-center">
+                      <p className="text-xl font-semibold text-green-800">{module.module_label}</p>
+                      <span className="ml-3 px-2 py-1 bg-green-500 text-white text-sm rounded-full">
+                        Terminé
+                      </span>
+                    </div>
+                    <div className="flex w-[30%] justify-end">
+                      <div>
+                        <label htmlFor="" className="mr-2 font-semibold text-green-700">
+                          presential
+                        </label>
+                        <input
+                          type="number"
+                          value={module.nbr_hours_presential_in_week}
+                          className="w-[60px] p-1 rounded bg-white border-green-300"
+                          onChange={(e) =>
+                            handleEditNbrHoursInWeekPresentialForModule(
+                              e,
+                              module
+                            )
+                          }
+                          step={2.5}
+                          min={2.5}
+                          max={15}
+                          disabled={true}
+                        />
+                      </div>
+                      <div className="flex ml-5 w-[50%] justify-between">
+                        <div className="flex items-center">
+                          <label htmlFor="" className="mr-2 font-semibold text-green-700">
+                            actif
+                          </label>
+                          <input
+                            type="radio"
+                            onClick={() =>
+                              handleEditStateModule(
+                                groupeId,
+                                module.moduleId,
+                                "actif"
+                              )
+                            }
+                            checked={module.is_started == true}
+                            name={"stateModule" + module.moduleId}
+                            className=" p-1 w-[25px] h-[25px] bg-white border-green-300"
+                            disabled={true}
+                          />
+                        </div>
+
+                        <div className="flex items-center ">
+                          <label htmlFor="" className="mr-2 font-semibold text-green-700">
+                            non actif{" "}
+                          </label>
+                          <input
+                            type="radio"
+                            onClick={() =>
+                              handleEditStateModule(
+                                groupeId,
+                                module.moduleId,
+                                "non-actif"
+                              )
+                            }
+                            checked={module.is_started == false}
+                            name={"stateModule" + module.moduleId}
+                            className=" p-1  w-[25px] h-[25px]  bg-white border-green-300"
+                            disabled={true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          {groupeWithModules.modules &&
+            groupeWithModules.modules.filter(
+              (module) => module.validate_efm === true
+            ).length == 0 && (
+              <div>
+                <p className="text-center my-10 text-green-600">Aucun module terminé</p>
+              </div>
+            )}
+        </div>
       </div>
 
       <div className="h-[20vh]"></div>
-      <PopupError afficherPopupError={afficherPopupError} errors={errors} />
+      <PopupError 
+        afficherPopupError={afficherPopupError} 
+        errors={errors} 
+        setAfficherPopupError={setAfficherPopupError}
+      />
     </div>
   );
 }

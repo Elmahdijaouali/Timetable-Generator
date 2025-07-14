@@ -43,7 +43,7 @@ export default function ListeDesEmploisDuTempsActifDesSalles() {
         setSallesAfterFilter(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 

@@ -28,7 +28,7 @@ export default function AjouterSalle() {
         setFormateurs(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -40,7 +40,7 @@ export default function AjouterSalle() {
         navigate("/administrateur/salles");
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -54,75 +54,78 @@ export default function AjouterSalle() {
   }, []);
 
   return (
-    <div className="lg:w-[96%] h-full p-10 ">
-      <ButtonNavigateBack />
-      <form
-        action=""
-        className="bg-gray-100  rounded-xl shadow-2xl shadow-gray-400 lg:my-10 my-6  lg:w-[50%] mx-auto lg:p-10"
-      >
-        <h1 className="text-bold text-blue-500 text-center text-4xl font-bold  my-10">
-          Ajouter un salle
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 to-white py-10">
+      <div className="w-full  p-6 flex items-center justify-start">
+        <ButtonNavigateBack />
+      </div>
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl p-8 relative">
+        <h1 className="text-blue-600 text-center text-3xl font-extrabold mb-8 tracking-tight">
+          Ajouter une salle
         </h1>
-
-        <div className="lg:my-3">
-          <label htmlFor="nomComplet">Neméro salle</label> <br />
-          <Input
-            placeholder="Enter le neméro salle"
-            className="w-full bg-white"
-            name="label"
-            onChange={handleChange}
-            value={formData.label}
-          />
-        </div>
-        <div className="lg:my-3">
-          <label htmlFor="formateur1">Formateur 1</label> <br />
-          <select
-            onChange={handleChange}
-            name="formateur1"
-            value={formData.formateur1}
-            id=""
-            className=" bg-white py-2 w-full rounded px-2 text-xl"
-          >
-            <option value="">Choix le formateur 1</option>
-            {formateurs &&
-              formateurs.map((formateur) => {
-                return (
-                  <option key={formateur.id} value={formateur.id}>
-                    {formateur.name}
-                  </option>
-                );
-              })}
-          </select>
-        </div>
-        <div className="lg:my-3">
-          <label htmlFor="formateur2">Formateur 2</label> <br />
-          <select
-            onChange={handleChange}
-            name="formateur2"
-            id=""
-            value={formData.formateur2}
-            className=" bg-white py-2 w-full rounded px-2 text-xl"
-          >
-            <option value="">Choix le formateur 2</option>
-            {formateurs &&
-              formateurs.map((formateur) => {
-                return (
-                  <option key={formateur.id} value={formateur.id}>
-                    {formateur.name}
-                  </option>
-                );
-              })}
-          </select>
-        </div>
-
-        <button
-          onClick={addSalle}
-          className=" bg-green-500 hover:cursor-pointer px-6 text-xl py-2 rounded text-white my-5"
+        <form
+          className="space-y-6"
+          onSubmit={e => { e.preventDefault(); addSalle(); }}
         >
-          <FontAwesomeIcon className="mr-2 " icon={faPlus} />
-          Ajouter
-        </button>
-      </form>
+          <div>
+            <label htmlFor="label" className="block text-gray-700 font-semibold mb-2">
+              Numéro de salle
+            </label>
+            <Input
+              placeholder="Entrez le numéro de la salle"
+              className="w-full bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-4 py-3 text-lg transition"
+              name="label"
+              onChange={handleChange}
+              value={formData.label}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label htmlFor="formateur1" className="block text-gray-700 font-semibold mb-2">
+              Formateur 1
+            </label>
+            <select
+              onChange={handleChange}
+              name="formateur1"
+              value={formData.formateur1}
+              className="w-full bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-4 py-3 text-lg transition"
+            >
+              <option value="">Choisissez le formateur 1</option>
+              {formateurs &&
+                formateurs.map((formateur) => (
+                  <option key={formateur.id} value={formateur.id}>
+                    {formateur.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="formateur2" className="block text-gray-700 font-semibold mb-2">
+              Formateur 2
+            </label>
+            <select
+              onChange={handleChange}
+              name="formateur2"
+              value={formData.formateur2}
+              className="w-full bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-4 py-3 text-lg transition"
+            >
+              <option value="">Choisissez le formateur 2</option>
+              {formateurs &&
+                formateurs.map((formateur) => (
+                  <option key={formateur.id} value={formateur.id}>
+                    {formateur.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition text-white text-xl font-bold py-3 rounded-lg shadow-md mt-4 focus:outline-none focus:ring-2 focus:ring-green-300"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            Ajouter
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

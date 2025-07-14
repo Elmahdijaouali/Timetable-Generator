@@ -29,7 +29,6 @@ export default function AfficherEmploiDuTempsDeFormateurEnAnnee() {
   const handleTelechargementListeEmploisDuTempsActifDeFormateurEnAnnee = () => {
     setAfficherPopup(true);
     setHandleLogicTelechargement(() => () => {
-      console.log("value popup", valuePopup);
       if (valuePopup === "png") {
         handleDownloadPng();
       }
@@ -71,7 +70,6 @@ export default function AfficherEmploiDuTempsDeFormateurEnAnnee() {
 
   useEffect(() => {
     fetchData();
-    console.log(emploiFormateur);
   }, [mle_formateur]);
 
   return (
@@ -150,66 +148,84 @@ export default function AfficherEmploiDuTempsDeFormateurEnAnnee() {
             <tbody>
               {emploiFormateur &&
                 emploiFormateur?.timetable.map((day, index) => {
+                  const isSamedi = day.day === "Samedi";
+                  
                   return (
-                    <tr>
+                    <tr key={index}>
                       <td
                         className=" lg:px-8 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"
                         style={{ background: "gray" }}
                       >
                         {day.day}
                       </td>
-                      {day.timeshot.split("-")[0] == "08:30" ? (
-                        <td
-                          className="lg:px-8 py-2 px-3  font-semibold text-center border w-[12%]"
-                          colSpan={2}
-                          style={{ background: "#0595d4" }}
-                        >
-                          Séance-{index + 1}
-                        </td>
+                      
+                      {isSamedi ? (
+                        // Saturday: Show two separate 2.5-hour slots
+                        <>
+                          {day.timeshot === "08:30-11:00" ? (
+                            <td
+                              className="lg:px-8 py-2 px-3 font-semibold text-center border w-[12%]"
+                              style={{ background: "#0595d4" }}
+                            >
+                              Séance-{index + 1}
+                            </td>
+                          ) : (
+                            <td
+                              className="lg:px-8 py-2 px-3 text-center border w-[12%]"
+                            ></td>
+                          )}
+                          
+                          {day.timeshot === "11:00-13:30" ? (
+                            <td
+                              className="lg:px-8 py-2 px-3 font-semibold text-center border w-[12%]"
+                              style={{ background: "#0595d4" }}
+                            >
+                              Séance-{index + 1}
+                            </td>
+                          ) : (
+                            <td
+                              className="lg:px-8 py-2 px-3 text-center border w-[12%]"
+                            ></td>
+                          )}
+                        </>
                       ) : (
-                        <td
-                          className="lg:px-8 py-2 px-3  text-center border w-[12%]"
-                          colSpan={2}
-                        ></td>
-                      )}
+                        // Regular days: Show two 5-hour slots
+                        <>
+                          {day.timeshot.split("-")[0] == "08:30" ? (
+                            <td
+                              className="lg:px-8 py-2 px-3  font-semibold text-center border w-[12%]"
+                              colSpan={2}
+                              style={{ background: "#0595d4" }}
+                            >
+                              Séance-{index + 1}
+                            </td>
+                          ) : (
+                            <td
+                              className="lg:px-8 py-2 px-3  text-center border w-[12%]"
+                              colSpan={2}
+                            ></td>
+                          )}
 
-                      {day.timeshot.split("-")[0] == "13:30" ? (
-                        <td
-                          className="lg:px-8 py-2 px-3 font-semibold text-center border w-[12%]"
-                          colSpan={2}
-                          style={{ background: "#0595d4" }}
-                        >
-                          {" "}
-                          Séance-{index + 1}
-                        </td>
-                      ) : (
-                        <td
-                          className="lg:px-8 py-2 px-3  text-center border w-[12%]"
-                          colSpan={2}
-                        ></td>
+                          {day.timeshot.split("-")[0] == "13:30" ? (
+                            <td
+                              className="lg:px-8 py-2 px-3 font-semibold text-center border w-[12%]"
+                              colSpan={2}
+                              style={{ background: "#0595d4" }}
+                            >
+                              {" "}
+                              Séance-{index + 1}
+                            </td>
+                          ) : (
+                            <td
+                              className="lg:px-8 py-2 px-3  text-center border w-[12%]"
+                              colSpan={2}
+                            ></td>
+                          )}
+                        </>
                       )}
                     </tr>
                   );
                 })}
-
-              {emploiFormateur?.timetable.length == 5 && (
-                <tr>
-                  <td
-                    className=" lg:px-8 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"
-                    style={{ background: "gray" }}
-                  >
-                    Samedi
-                  </td>
-                  <td
-                    className="lg:px-8 py-2 px-3  text-center border w-[12%]"
-                    colSpan={2}
-                  ></td>
-                  <td
-                    className="lg:px-8 py-2 px-3  text-center border w-[12%]"
-                    colSpan={2}
-                  ></td>
-                </tr>
-              )}
             </tbody>
           </table>
           <div className="flex justify-between">

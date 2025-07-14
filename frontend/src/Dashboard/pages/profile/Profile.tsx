@@ -4,16 +4,25 @@ import Input from "../../../components/Input";
 import api from "../../../api/apiConfig";
 import { handleNotification } from "../../../utils/notification";
 import { useNavigate } from "react-router-dom";
+import SectionCard from '../../../components/SectionCard';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faEdit, faLock, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 interface Administrator {
   name: string;
   email: string;
+  id?: number;
+  profileImage?: string;
+  dashboardBackground?: string;
 }
 
 export default function Profile() {
   const [administrateur, setAdministrateur] = useState<Administrator>({
     name: "",
     email: "",
+    id: undefined,
+    profileImage: undefined,
+    dashboardBackground: undefined,
   });
 
   const navigate = useNavigate();
@@ -52,8 +61,10 @@ export default function Profile() {
           "administrator",
           JSON.stringify(res.data.administrator)
         );
+        handleNotification("Profil mis à jour", "Vos informations ont été mises à jour avec succès !");
       }
     } catch (err) {
+      handleNotification("Erreur", "Impossible de mettre à jour le profil.");
       console.log(err);
     }
   };
@@ -66,15 +77,16 @@ export default function Profile() {
       });
       if (res && res.data && res.data.message) {
         setErrorsInFormModifierPassword("");
-        setMessageSuccess(res.data.message);
-
-        handleNotification("Update password", "updated password successfuly !");
+        setMessageSuccess("Mot de passe modifié avec succès !");
+        handleNotification("Mot de passe modifié", "Votre mot de passe a été modifié avec succès !");
       }
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.errors) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { errors?: string } } };
+      if (error.response && error.response.data && error.response.data.errors) {
         setMessageSuccess("");
-        setErrorsInFormModifierPassword(err.response.data.errors);
+        setErrorsInFormModifierPassword(error.response.data.errors);
       }
+      handleNotification("Erreur", "Impossible de modifier le mot de passe.");
       console.log(err);
     } finally {
       setFormModifierPassword({
@@ -86,15 +98,17 @@ export default function Profile() {
   };
 
   const handleDeleteAccount = async () => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) return;
     try {
       const res = await api.delete(`/delete-account/${administrateur.email}`);
       if (res && res.data && res.data.message) {
-        console.log("log", res.data.message);
         localStorage.removeItem("token");
         localStorage.removeItem("administrator");
-        navigate("/");
+        handleNotification("Compte supprimé", "Votre compte a été supprimé avec succès.");
+        navigate("/login");
       }
     } catch (err) {
+      handleNotification("Erreur", "Impossible de supprimer le compte.");
       console.log(err);
     }
   };
@@ -102,65 +116,73 @@ export default function Profile() {
   useEffect(() => {
     const administrateurInfo = localStorage.getItem("administrator");
     if (administrateurInfo) {
-      setAdministrateur(JSON.parse(administrateurInfo));
+      const admin = JSON.parse(administrateurInfo);
+      setAdministrateur(admin);
     }
   }, [localStorage.getItem("administrator")]);
 
   return (
-    <div className="lg:w-[70%]  w-[90%] mx-auto lg:my-10 my-5 lg:p-10 p-3 ">
-      <h1 className="lg:text-3xl text-xl font-bold my-2 text-blue-500">
-        Profile
-      </h1>
-      <div className="w-full lg:h-[25vh] bg-gray-100 rounded-lg lg:py-5 p-5 lg:px-10">
-        <h2 className=" text-xl lg:mb-5 font-bold text-gray-700">
-          Les Information{" "}
-        </h2>
-        <img
-          src="/./images/avatar.jpg"
-          className="lg:w-[100px] w-[70px] h-[70px] lg:h-[100px] bg-gray-500 rounded-full"
-          alt=""
-        />
-        <div className="lg:mt-3">
-          <h1 className="text-gray-600 lg:font-bold">{administrateur?.name}</h1>
-          <h3 className="text-gray-600 lg:font-bold">
-            {administrateur?.email}
-          </h3>
+    <div className="lg:w-[70%] w-[90%] mx-auto lg:my-10 my-5 lg:p-10 p-3 bg-gray-50 min-h-screen">
+      <h1 className="lg:text-3xl text-xl font-bold my-2 text-blue-500">Mon Profil</h1>
+      <SectionCard
+        icon={faUser}
+        title="Informations personnelles"
+        description="Voici vos informations personnelles enregistrées."
+      >
+        <div className="flex items-center gap-6">
+          <img
+            src="/./images/avatar.jpg"
+            className="lg:w-[100px] w-[70px] h-[70px] lg:h-[100px] bg-gray-500 rounded-full border-4 border-blue-200 shadow"
+            alt="Avatar administrateur"
+          />
+          <div className="lg:mt-3">
+            <h1 className="text-gray-700 text-xl font-bold">{administrateur?.name}</h1>
+            <h3 className="text-gray-500 text-lg font-semibold">{administrateur?.email}</h3>
+          </div>
         </div>
-      </div>
-      <div className="w-full lg:h-[35vh] my-5 bg-gray-100 rounded-lg lg:py-10 p-5 lg:px-10">
-        <h2 className=" text-xl lg:mb-5 font-bold text-gray-700">
-          Modify les Information{" "}
-        </h2>
+      </SectionCard>
 
+      <SectionCard
+        icon={faEdit}
+        title="Modifier mes informations"
+        description="Mettez à jour votre nom ou votre adresse e-mail."
+      >
         <div className="lg:my-5">
-          <label htmlFor="">Nom et prénom </label>
+          <label htmlFor="profile-name" className="text-gray-700 font-medium">Nom et prénom</label>
           <Input
-            placeholder="Enter le nom et prénom"
+            type="text"
+            id="profile-name"
+            className=""
+            placeholder="Entrez votre nom et prénom"
             value={administrateur.name}
             onChange={handleChange}
             name="name"
           />
         </div>
         <div className="lg:my-5">
-          <label htmlFor="">Email </label>
+          <label htmlFor="profile-email" className="text-gray-700 font-medium">Email</label>
           <Input
-            placeholder="Enter e-mail"
+            type="email"
+            id="profile-email"
+            className=""
+            placeholder="Entrez votre e-mail"
             value={administrateur.email}
             onChange={handleChange}
             name="email"
           />
         </div>
-
         <Button
           onClick={handleUpdateInfoAdministrateur}
-          label="Modilfy"
-          className="bg-blue-500 text-white px-4"
+          label="Enregistrer les modifications"
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-semibold shadow mt-4"
         />
-      </div>
-      <div className="w-full lg:h-fit my-5 bg-gray-100 rounded-lg lg:py-10 p-5 lg:px-10">
-        <h2 className=" text-xl lg:mb-5 font-bold text-gray-700">
-          Modify password{" "}
-        </h2>
+      </SectionCard>
+
+      <SectionCard
+        icon={faLock}
+        title="Modifier le mot de passe"
+        description="Changez votre mot de passe pour plus de sécurité."
+      >
         <div>
           {errorsInFormModifierPassword && (
             <p className="text-red-500 bg-red-200 p-2 rounded text-center ">
@@ -174,57 +196,59 @@ export default function Profile() {
           )}
         </div>
         <div className="lg:my-5">
-          <label htmlFor="">Password </label>
+          <label htmlFor="profile-password">Mot de passe actuel</label>
           <Input
             type="password"
+            id="profile-password"
+            className=""
             name="password"
-            placeholder="Enter password"
+            placeholder="Entrez votre mot de passe actuel"
             value={formModifierPassword.password}
             onChange={handleChangeInFormModifierPassword}
           />
         </div>
         <div className="lg:my-5">
-          <label htmlFor="">New Password </label>
+          <label htmlFor="profile-new-password">Nouveau mot de passe</label>
           <Input
             type="password"
+            id="profile-new-password"
+            className=""
             name="newPassword"
-            placeholder="Enter new password"
+            placeholder="Entrez le nouveau mot de passe"
             value={formModifierPassword.newPassword}
             onChange={handleChangeInFormModifierPassword}
           />
         </div>
         <div className="lg:my-5">
-          <label htmlFor="">Password Confirmation </label>
+          <label htmlFor="profile-confirm-password">Confirmation du nouveau mot de passe</label>
           <Input
             type="password"
+            id="profile-confirm-password"
+            className=""
             name="confiremationPassword"
-            placeholder="Enter password confirmation"
+            placeholder="Confirmez le nouveau mot de passe"
             value={formModifierPassword.confiremationPassword}
             onChange={handleChangeInFormModifierPassword}
           />
         </div>
-
         <Button
-          label="Modilfy"
+          label="Enregistrer le nouveau mot de passe"
           onClick={handleUpdatePasswordAdministrateur}
-          className="bg-blue-500 text-white px-4"
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-semibold shadow mt-4"
         />
-      </div>
-      <div className="w-full  my-5 bg-gray-100 rounded-lg lg:py-10 p-5 lg:px-10">
-        <h1 className=" text-xl lg:mb-5 font-bold text-gray-700">
-          Destroy account
-        </h1>
-        <p>
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolore magni
-          est obcaecati possimus eligendi, ducimus laborum iure minima
-          reprehenderit totam?
-        </p>
+      </SectionCard>
+
+      <SectionCard
+        icon={faTrash}
+        title="Supprimer mon compte"
+        description="Attention : Cette action est irréversible. Toutes vos données seront supprimées définitivement."
+      >
         <Button
           onClick={handleDeleteAccount}
-          className="bg-red-500 mt-5"
-          label="Delete account"
+          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-2 rounded-lg font-semibold shadow mt-4"
+          label="Supprimer mon compte"
         />
-      </div>
+      </SectionCard>
     </div>
   );
 }

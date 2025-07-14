@@ -5,7 +5,6 @@ import React from "react";
 export default function ButtonPrint({ timetableRef }: { timetableRef: React.RefObject<HTMLDivElement> | null }) {
 
   const handlePrint = () => {
-    console.log(timetableRef)
     window.print()
     return
     

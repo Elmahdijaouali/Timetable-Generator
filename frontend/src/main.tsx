@@ -4,16 +4,15 @@ import App from './App.tsx'
 import './index.css'
 import FilieresProvider from './contextApi/filieresContext.tsx'
 
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-        <FilieresProvider >
-           <App />
-        </FilieresProvider>
+    <FilieresProvider>
+      <App />
+    </FilieresProvider>
   </React.StrictMode>,
 )
 
 // Use contextBridge
 window.ipcRenderer.on('main-process-message', (_event, message) => {
-  console.log(message)
+  // Removed console.log statements for production
 })

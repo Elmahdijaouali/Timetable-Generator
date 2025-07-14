@@ -30,127 +30,117 @@ export default function TimetableFormateur({
   formateurTimetable,
   timetableRef,
 }: Props) {
+  // Helper to calculate total hours from timetable
+  function calculateTotalHours(timetable: Day[] = []) {
+    let total = 0;
+    const validSlots = ["08:30-11:00", "11:00-13:30", "13:30-16:00", "16:00-18:30"];
+    timetable.forEach(day => {
+      const sessions = Object.values(day)[0];
+      if (Array.isArray(sessions)) {
+        sessions.forEach(session => {
+          if (validSlots.includes(session.timeshot)) {
+            total += 2.5;
+          }
+        });
+      }
+    });
+    return total;
+  }
+
   return (
-    <div className="p-5" ref={timetableRef}>
-      <h1 className="text-center text-2xl font-bold">EMPLOI DU TEMPS</h1>
+    <div className="p-5 rounded-lg shadow-md" ref={timetableRef} style={{ background: '#fff' }}>
+      <h1 className="text-center text-2xl font-bold" style={{ color: '#111827' }}>EMPLOI DU TEMPS</h1>
       <div className="flex justify-between my-5">
         <div>
-          <p>
+          <p style={{ color: '#374151' }}>
             EFP :
-            <span className=" uppercase font-bold" style={{ color: "blue" }}>
+            <span className="uppercase font-bold" style={{ color: '#2563eb' }}>
               ista cité de l'air
             </span>
           </p>
         </div>
         <div>
-          <p>
+          <p style={{ color: '#374151' }}>
             Année de formation :{" "}
-            <span className=" font-bold" style={{ color: "blue" }}>
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               2024-2025{" "}
             </span>
           </p>
           <br />
-          <p className="">
+          <p style={{ color: '#374151' }}>
             Formateur :{" "}
-            <span className="font-bold" style={{ color: "blue" }}>
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               {formateurTimetable.formateur}{" "}
             </span>
           </p>
         </div>
       </div>
       <div>
-        <table className="w-full ">
+        <table className="w-full">
           <thead>
             <tr>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"></th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                80:30-11:00
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                11:00-13:30
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                13:30-16:00
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                16:00-18:30
-              </th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"></th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">08:30-11:00</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">11:00-13:30</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">13:30-16:00</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">16:00-18:30</th>
             </tr>
           </thead>
           <tbody>
-            {formateurTimetable.timetable &&
-              formateurTimetable.timetable.map((day, index) => {
-                const dayLabel = Object.keys(day)[0];
-                const sessions = Object.values(day)[0];
-                
-
-                return (() => {
-                  const renderCells = [];
-                  let skipNext = false;
-
-                  for (let i = 0; i < timeShots.length; i++) {
-                    if (skipNext) {
-                      skipNext = false;
-                      continue;
-                    }
-
-                    const timeshot = timeShots[i];
-                    const currentSession = sessions?.find(
-                      (s) => s.timeshot === timeshot
-                    );
-                    const nextSession = sessions?.find(
-                      (s) => s.timeshot === timeShots[i + 1]
-                    );
-
-                    let merge = false;
-                    if (
-                      currentSession &&
-                      nextSession &&
-                      currentSession.module === nextSession.module &&
-                      currentSession.salle === nextSession.salle
-                    ) {
-                      merge = true;
-                      skipNext = true;
-                    }
-
-                    renderCells.push(
-                      <RenderTimeShot
-                        key={i}
-                        session={currentSession}
-                        mergeSession={merge}
-                      />
-                    );
+            {(formateurTimetable.timetable || []).map((day, index) => {
+              const dayLabel = Object.keys(day)[0];
+              const sessions = Object.values(day)[0];
+              const isSamedi = dayLabel === 'Samedi';
+              const slotsToShow = isSamedi ? ["08:30-11:00", "11:00-13:30"] : timeShots;
+              const totalColumns = timeShots.length;
+              return (() => {
+                const renderCells = [];
+                let skipNext = false;
+                for (let i = 0; i < slotsToShow.length; i++) {
+                  if (skipNext) { skipNext = false; continue; }
+                  const timeshot = slotsToShow[i];
+                  const currentSession = sessions?.find((s) => s.timeshot === timeshot);
+                  const nextSession = sessions?.find((s) => s.timeshot === slotsToShow[i + 1]);
+                  let merge = false;
+                  if (currentSession && nextSession && currentSession.module === nextSession.module && currentSession.salle === nextSession.salle) {
+                    merge = true;
+                    skipNext = true;
                   }
-
-                  return (
-                    <tr key={index}>
-                      <td
-                        className="lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"
-                        style={{ background: "gray" }}
-                      >
-                        {dayLabel}
-                      </td>
-                      {renderCells}
-                    </tr>
+                  renderCells.push(
+                    <RenderTimeShot key={i} session={currentSession} mergeSession={merge} />
                   );
-                })();
-              })}
+                }
+                if (isSamedi && slotsToShow.length < totalColumns) {
+                  for (let i = slotsToShow.length; i < totalColumns; i++) {
+                   renderCells.push(
+                     <td key={`empty-${i}`} className="lg:px-5 py-2 px-3 text-center border w-[12%]" style={{ background: '#f9fafb' }}></td>
+                   );
+                  }
+                }
+                return (
+                  <tr key={index}>
+                   <td style={{ background: '#6b7280', color: '#fff' }} className="lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]">{dayLabel}</td>
+                    {renderCells}
+                  </tr>
+                );
+              })();
+            })}
           </tbody>
         </table>
-        <div className="flex justify-between">
-          <p>
-            Cet emploi du temps est valable _ partir du{" "}
-            <span className="font-bold" style={{ color: "blue" }}>
-              {formateurTimetable?.valid_form}
-            </span>
-          </p>
-          <p>
-            {" "}
-            Nombre d'heures:
-            <span className="font-bold" style={{ color: "blue" }}>
-              {formateurTimetable?.nbr_hours_in_week}
-            </span>
-          </p>
+        <div className="flex justify-between mt-5">
+         <p style={{ color: '#374151' }}>
+           Cet emploi du temps est valable à partir du{" "}
+           <span className="font-bold" style={{ color: '#2563eb' }}>
+             {formateurTimetable?.valid_form}
+           </span>
+         </p>
+         <p style={{ color: '#374151' }}>
+           {" "}
+           Nombre d'heures:
+           <span className="font-bold" style={{ color: '#2563eb' }}>
+             {calculateTotalHours(formateurTimetable.timetable || [])}
+           </span>
+         </p>
         </div>
       </div>
     </div>
@@ -165,7 +155,7 @@ const RenderTimeShot = ({
   mergeSession: boolean;
 }) => {
   if (!session) {
-    return <td className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
+    return <td style={{ background: '#f9fafb' }} className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
   }
 
   return (
@@ -174,9 +164,9 @@ const RenderTimeShot = ({
       className="lg:px-5 py-2 px-3 text-center border w-[12%]"
       style={{ background: session.color }}
     >
-      <span className="font-semibold">{session.module}</span> <br />
-      <span className=" font-semibold  ">{session.group}</span> <br />
-      <span className="font-semibold">{session.salle}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.module}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.group}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.salle}</span> <br />
     </td>
   );
 };

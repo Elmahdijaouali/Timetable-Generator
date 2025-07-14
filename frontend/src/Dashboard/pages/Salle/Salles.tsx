@@ -56,7 +56,6 @@ export default function Salles() {
         setAfficherPopupError(true);
       }
       setLoading(false);
-      console.log(err);
     } finally {
       if (fileinputRef.current) {
         fileinputRef.current.value = "";
@@ -74,7 +73,7 @@ export default function Salles() {
         setSallesFilter(res.data);
       }
     } catch (err) {
-      console.log("Error", err);
+      // console.log("Error", err);
     }
   };
 

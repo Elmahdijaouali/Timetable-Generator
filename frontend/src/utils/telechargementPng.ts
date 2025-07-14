@@ -24,7 +24,7 @@ export const handleDownloadPng = (
     return;
   }
 
-  html2canvas(timetableRef.current).then((canvas) => {
+  html2canvas(timetableRef.current, { backgroundColor: "#fff" }).then((canvas) => {
     const imgUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = imgUrl;
@@ -48,7 +48,7 @@ export const handleDownloadTimetableFormateurPng = (
     return;
   }
 
-  html2canvas(timetableRef.current).then((canvas) => {
+  html2canvas(timetableRef.current, { backgroundColor: "#fff" }).then((canvas) => {
     const imgUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = imgUrl;
@@ -72,7 +72,7 @@ export const handleDownloadTimetableSallePng = (
     return;
   }
 
-  html2canvas(timetableRef.current).then((canvas) => {
+  html2canvas(timetableRef.current, { backgroundColor: "#fff" }).then((canvas) => {
     const imgUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = imgUrl;

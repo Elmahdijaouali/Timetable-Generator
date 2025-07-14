@@ -29,21 +29,26 @@ export default function HistoriqueEmploisDuTempsDesGroups() {
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [datesValidFrom, setDatesValidFrom] = useState<string[]>([]);
+  const [selectedValidFrom, setSelectedValidFrom] = useState<string>("");
 
-  const fetchData = async (page: number, limit: number) => {
+  const fetchData = async (page: number, limit: number, validFrom = "") => {
     try {
       setLoading(true);
-      const res = await api.get(
-        `/historic-timetables/groups?page=${page}&limit=${limit}`
-      );
+      let url = "";
+      if (validFrom) {
+        url = `/historic-timetables/groups-filter?valid_form=${encodeURIComponent(validFrom)}&page=${page}&limit=${limit}`;
+      } else {
+        url = `/historic-timetables/groups?page=${page}&limit=${limit}`;
+      }
+      const res = await api.get(url);
       if (res && res.data) {
         setLoading(false);
+        // Both endpoints return { data, totalPages } or just { data }
         setHistoricTimetablesGroups(res.data.data);
-        setTotalPages(res.data.totalPages);
+        setTotalPages(res.data.totalPages || 1);
       }
     } catch (err) {
       setLoading(false);
-      console.log(err);
     }
   };
 
@@ -66,14 +71,13 @@ export default function HistoriqueEmploisDuTempsDesGroups() {
         setDatesValidFrom(res.data);
       }
     } catch (err) {
-      console.log(err);
     }
   };
 
   useEffect(() => {
-    fetchData(page, limit);
+    fetchData(page, limit, selectedValidFrom);
     fetchDataDatesValidFrom();
-  }, [page, limit]);
+  }, [page, limit, selectedValidFrom]);
 
   return (
     <div className="lg:w-[93%] mx-auto  h-full lg:px-10 lg:py-5  p-5 ">
@@ -98,16 +102,20 @@ export default function HistoriqueEmploisDuTempsDesGroups() {
         <Button label="Chercher" />
         <div className="ml-auto flex">
           <select
-            name=""
-            id=""
+            name="validFrom"
+            id="validFrom"
             className=" bg-gray-200 px-5 py-2 rounded text-xl mx-3"
+            value={selectedValidFrom}
+            onChange={e => {
+              setSelectedValidFrom(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">Filter Valide a partir de </option>
             {datesValidFrom &&
               datesValidFrom.map((date, index) => {
                 return (
                   <option value={date} key={index}>
-                    {/* {new Date(date).toLocaleDateString()}  */}
                     {date}
                   </option>
                 );

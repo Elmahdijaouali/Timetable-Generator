@@ -28,7 +28,7 @@ export default function FilieresProvider({
         setFiliers(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 

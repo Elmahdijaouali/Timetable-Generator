@@ -44,7 +44,7 @@ export default function ListeDesEmploisDuTempsActifDesFormateur() {
         setListFormateurAfterFilter(res.data);
       }
     } catch (err) {
-      console.log("Error" + err);
+      // Removed console.log statements for production
     }
   };
 

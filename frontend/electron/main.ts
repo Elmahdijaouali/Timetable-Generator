@@ -2,10 +2,98 @@ import { app, BrowserWindow } from "electron";
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-// import {spawn } from 'child_process'
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import net from 'node:net';
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Backend process management
+let backendProcess: ChildProcessWithoutNullStreams | null = null;
+
+function startBackend() {
+  return new Promise<void>((resolve, reject) => {
+    // Check if backend is already running
+    if (backendProcess) {
+      return resolve();
+    }
+
+    // Check if backend is already running on port 8002
+    const testSocket = new net.Socket();
+    
+    testSocket.on('error', () => {
+      // Port is not in use, we can start the backend
+      testSocket.destroy();
+      
+      const backendPath = path.join(__dirname, '..', '..', 'backend', 'index.js');
+      const backendDir = path.join(__dirname, '..', '..', 'backend');
+
+      // Start the backend process
+      backendProcess = spawn('node', [backendPath], {
+        cwd: backendDir,
+        stdio: 'pipe', // Use pipe to capture output
+        shell: false
+      });
+
+      // Handle backend output
+      backendProcess.stdout?.on('data', (data) => {
+        // Check if backend is ready (listening on port)
+        if (data.toString().includes('High-performance server running on port')) {
+          resolve();
+        }
+      });
+
+      backendProcess.stderr?.on('data', (data) => {
+        console.error(`Backend Error: ${data.toString().trim()}`);
+      });
+
+      backendProcess.on('close', (code) => {
+        console.log(`Backend process exited with code ${code}`);
+        backendProcess = null;
+      });
+
+      backendProcess.on('error', (err) => {
+        console.error(`Error starting backend process: ${err.message}`);
+        backendProcess = null;
+        reject(err);
+      });
+
+      // Timeout after 10 seconds if backend doesn't start
+      setTimeout(() => {
+        if (backendProcess && !backendProcess.killed) {
+          resolve();
+        }
+      }, 10000);
+    });
+
+    testSocket.on('connect', () => {
+      // Port is in use, backend is already running
+      console.log('Backend is already running on port 8002');
+      testSocket.destroy();
+      resolve();
+    });
+
+    // Try to connect to port 8002
+    testSocket.connect(8002, 'localhost');
+  });
+}
+
+function stopBackend() {
+  if (backendProcess) {
+    console.log('Stopping backend process...');
+    backendProcess.kill('SIGTERM');
+    
+    // Force kill after 5 seconds if it doesn't stop gracefully
+    setTimeout(() => {
+      if (backendProcess && !backendProcess.killed) {
+        console.log('Force killing backend process...');
+        backendProcess.kill('SIGKILL');
+      }
+    }, 5000);
+    
+    backendProcess = null;
+  }
+}
 
 // The built directory structure
 //
@@ -35,9 +123,10 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
     },
+    fullscreen: false, // Do not open in full screen
   });
 
-  win.maximize();
+  win.maximize(); // Start maximized
 
   // Test active push message to Renderer-process.
   win.webContents.on("did-finish-load", () => {
@@ -62,61 +151,6 @@ app.on("window-all-closed", () => {
   }
 });
 
-// let backendProcess = null;
-// function startBackend() {
-//   return new Promise((resolve, reject) => {
-//     // Check if the backend is already running
-//     if (backendProcess) {
-//       console.log("Backend is already running.");
-//       return resolve();  // Resolve immediately if backend is already running
-//     }
-
-//     // Use quotes around the npm.cmd path to handle spaces in "Program Files"
-//     const npmPath = '"C:/Program Files/nodejs/npm.cmd"';
-//     const apiDirectory = path.join(__dirname, '..', '..', 'backend');  // Correct path to your backend
-
-//     console.log(`Spawning backend process from: ${apiDirectory}`);
-
-//     // Start the backend process
-//     backendProcess = spawn(npmPath, ['start'], { cwd: apiDirectory, shell: true });
-
-//     backendProcess.stdout.on('data', (data) => {
-//       console.log(`Backend Output: ${data}`);
-//     });
-
-//     backendProcess.stderr.on('data', (data) => {
-//       console.error(`Backend Error: ${data}`);
-//     });
-
-//     backendProcess.on('close', (code) => {
-//       console.log(`Backend process exited with code ${code}`);
-//       backendProcess = null;  // Reset flag when backend process exits
-//       resolve(code);  // Resolve on success
-//     });
-
-//     backendProcess.on('error', (err) => {
-//       console.error(`Error starting backend process: ${err.message}`);
-//       backendProcess = null;  // Reset flag on error
-//       reject(err);  // Reject on error
-//     });
-//   });
-// }
-
-// // Usage example
-// startBackend()
-//   .then((code) => {
-//     console.log(`Backend started successfully with exit code ${code}`);
-//   })
-//   .catch((err) => {
-//     console.error(`Error starting backend: ${err.message}`);
-//  });
-
-// app.whenReady().then(() => {
-//   // Start the Express server (backend)
-//   startBackend()
-
-// })
-
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
@@ -125,14 +159,32 @@ app.on("activate", () => {
   }
 });
 
-// app.on('ready' , () => {
-//   const notification = new Notification({
-//     title : 'Timetable Generator | Ista Cité De L\'air' ,
-//     body : 'this is test global notification' ,
-//   })
-//   notification.show()
-// })
+// Handle app quit - stop backend
+app.on('before-quit', () => {
+  stopBackend();
+});
+
+// Handle process termination signals
+process.on('SIGINT', () => {
+  stopBackend();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  stopBackend();
+  process.exit(0);
+});
 
 app.setAppUserModelId("TimetableGenerator");
 
-app.whenReady().then(createWindow);
+// Start backend first, then create window
+app.whenReady().then(async () => {
+  try {
+    await startBackend();
+    createWindow();
+  } catch (error) {
+    console.error('Failed to start backend:', error);
+    // Still create window even if backend fails
+    createWindow();
+  }
+});

@@ -9,7 +9,11 @@
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    "../backend/**/*",
+    "!../backend/node_modules/**/*",
+    "!../backend/.git/**/*",
+    "!../backend/*.log"
   ],
   "mac": {
     "target": [

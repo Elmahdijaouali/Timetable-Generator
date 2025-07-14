@@ -39,7 +39,7 @@ export default function SallesNoDisponbile() {
         setSalles(res2.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -54,7 +54,7 @@ export default function SallesNoDisponbile() {
       fetchData();
       setSalle({ ...salle });
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -69,7 +69,7 @@ export default function SallesNoDisponbile() {
 
       fetchData();
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -92,90 +92,83 @@ export default function SallesNoDisponbile() {
   }, []);
 
   return (
-    <div className="lg:w-[93%] mx-auto relative h-full lg:px-10 lg:py-5  p-5 ">
+    <div className="lg:w-[93%] mx-auto relative h-full lg:px-10 lg:py-5 p-5 bg-gray-50 min-h-screen">
       <ButtonNavigateBack />
-      <h1 className="lg:text-3xl font-bold my-5">Les salles no disponible</h1>
+      <h1 className="lg:text-3xl font-bold my-5 text-gray-900 flex items-center gap-3">
+        <FontAwesomeIcon icon={faSquarePlus} className="text-blue-500 text-3xl" />
+        Les salles non disponible
+      </h1>
 
-      <div className="bg-gray-200 lg:w-[50%] rounded shadow p-5 my-5">
-        <h2 className="text-xl font-bold">
-          <FontAwesomeIcon
-            className="text-blue-500 text-2xl mr-3"
-            icon={faSquarePlus}
-          />
-          Ajouter un salle dans la liste des salles no disponible
+      {/* Add Salle Form */}
+      <div className="bg-white shadow-lg rounded-xl p-8 my-8 border border-gray-200 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+          <FontAwesomeIcon icon={faPlus} className="text-green-500" />
+          Ajouter une salle non disponible
         </h2>
-        <div className="ml-10 my-5">
-          <label htmlFor="" className=" font-bold">
-            Salle :
-          </label>
+        <div className="flex flex-col gap-4">
           <select
-            name=""
-            id=""
+            name="salleId"
             onChange={(e) => setSalle({ ...salle, salleId: e.target.value })}
             value={salle.salleId}
-            className="bg-gray-50 px-10 ml-10 lg:w-[50%] py-2 rounded "
+            className="bg-gray-50 px-4 py-2 rounded border border-gray-300 text-gray-900 w-full"
           >
-            <option value="">Choix la salle</option>
-
+            <option value="">Choisir la salle</option>
             {salles &&
-              salles.map((salle) => {
-                return (
-                  <option key={salle.id} value={salle.id}>
-                    {salle.label}
-                  </option>
-                );
-              })}
+              salles.map((salle) => (
+                <option key={salle.id} value={salle.id}>
+                  {salle.label}
+                </option>
+              ))}
           </select>
-        </div>
-        <button
-          onClick={addSalleToListNoAvailable}
-          className=" bg-green-500 hover:cursor-pointer text-white rounded px-5 py-2"
-        >
-          <FontAwesomeIcon className="mr-2" icon={faPlus} />
-          Ajouter
-        </button>
-      </div>
-      <div className="bg-gray-200  rounded shadow p-5 my-5">
-        <h2 className="text-xl font-bold my-2">
-          <FontAwesomeIcon
-            className="text-blue-500 text-2xl mr-3"
-            icon={faList}
+          <Button
+            label="Ajouter"
+            onClick={addSalleToListNoAvailable}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded shadow w-fit self-end"
           />
-          La liste des salles no disponible
-        </h2>
-        <div className="flex">
+        </div>
+      </div>
+
+      {/* Search and List Section */}
+      <div className="bg-white shadow-lg rounded-xl p-8 my-8 border border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h2 className="text-xl font-bold text-blue-600 flex items-center gap-2">
+            <FontAwesomeIcon icon={faList} className="text-blue-400" />
+            Liste des salles non disponible
+          </h2>
           <Input
-            placeholder="Enter label de salle..."
-            className="!w-[500px] bg-white"
+            placeholder="Rechercher une salle..."
+            className="!w-[300px] bg-gray-100 border border-gray-300 rounded px-3 py-2"
             value={valueInputSearch}
             onChange={handleSearch}
-          />
-          <Button
-            label="Chercher"
-            onClick={() => {}}
-            className="bg-blue-500 text-white px-4"
+            type="text"
+            name="search"
+            id="search"
           />
         </div>
-        <div>
-          {sallesNonDisponibleAfterFilter &&
-            sallesNonDisponibleAfterFilter.map((salle) => {
-              return (
-                <div
-                  key={salle.id}
-                  className="flex justify-between items-center p-5 rounded-2xl bg-gray-400 my-3 lg:px-20 "
-                >
-                  <p className="min-w-[300px] text-center py-2 rounded text-xl bg-white">
-                    {salle.label}
-                  </p>
-                  <button
-                    onClick={() => removeSalleFromListNoAvailable(salle.id)}
-                    className=" bg-blue-500 hover:cursor-pointer px-8 mx-5 py-2  text-xl rounded text-white"
-                  >
-                    Disponible
-                  </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {sallesNonDisponibleAfterFilter && sallesNonDisponibleAfterFilter.length > 0 ? (
+            sallesNonDisponibleAfterFilter.map((salle) => (
+              <div
+                key={salle.id}
+                className="flex flex-col gap-2 p-6 rounded-xl bg-blue-50 border border-blue-200 shadow hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <FontAwesomeIcon icon={faSquarePlus} className="text-blue-500 text-xl" />
+                  <span className="font-semibold text-lg text-blue-800">{salle.label}</span>
                 </div>
-              );
-            })}
+                <button
+                  className="bg-green-500 hover:bg-green-600 hover:cursor-pointer px-6 py-2 text-lg rounded text-white transition-colors w-fit self-end"
+                  onClick={() => removeSalleFromListNoAvailable(salle.id)}
+                >
+                  Rendre disponible
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 py-10 text-lg">
+              Aucune salle non disponible trouvée.
+            </div>
+          )}
         </div>
       </div>
     </div>

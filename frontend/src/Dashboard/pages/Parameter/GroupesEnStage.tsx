@@ -6,6 +6,7 @@ import {
   faList,
   faPeopleGroup,
   faPlus,
+  faSquarePlus,
 } from "@fortawesome/free-solid-svg-icons";
 import ButtonNavigateBack from "../../../components/ButtonNavigateBack";
 import { useContext, useEffect, useState } from "react";
@@ -44,6 +45,7 @@ export default function GroupesEnStage() {
   const [groupsEnStageAfterFilter, setGroupsEnStageAfterFilter] = useState<
     Stage[]
   >([]);
+  const [valueInputSearch, setValueInputSearch] = useState("");
 
   const [errors, setErrors] = useState("");
 
@@ -81,8 +83,20 @@ export default function GroupesEnStage() {
       if (err.response.data.errors) {
         setErrors(err.response.data.errors);
       }
-      console.log(err);
     }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValueInputSearch(value);
+    if (value === "") {
+      setGroupsEnStageAfterFilter(groupesEnStage);
+      return;
+    }
+    const filtered = groupesEnStage.filter((stage) =>
+      stage.group.code_group.toLowerCase().includes(value.toLowerCase())
+    );
+    setGroupsEnStageAfterFilter(filtered);
   };
 
   const fetchDataGroups = async () => {
@@ -93,7 +107,6 @@ export default function GroupesEnStage() {
         setGroupes(res.data);
       }
     } catch (err) {
-      console.log(err);
     }
   };
   const fetchData = async () => {
@@ -105,7 +118,6 @@ export default function GroupesEnStage() {
         setGroupsEnStageAfterFilter(res.data);
       }
     } catch (err) {
-      console.log(err);
     }
   };
 
@@ -115,154 +127,106 @@ export default function GroupesEnStage() {
   }, []);
 
   return (
-    <div className="lg:w-[93%] lg:p-10 mx-auto  h-full lg:px-10 lg:py-5  p-5 ">
+    <div className="lg:w-[93%] mx-auto relative h-full lg:px-10 lg:py-5 p-5 bg-gray-50 min-h-screen">
       <ButtonNavigateBack />
-      <div className="flex mt-3 justify-between">
-        <h1 className="lg:text-3xl font-bold">
-          <FontAwesomeIcon className="mr-3" icon={faPeopleGroup} />
-          Les groupes en stage
-        </h1>
+      <h1 className="lg:text-3xl font-bold my-5 text-gray-900 flex items-center gap-3">
+        <FontAwesomeIcon icon={faPeopleGroup} className="text-blue-500 text-3xl" />
+        Groupes en stage
+      </h1>
 
-        <button
-          onClick={() => setDipslayFormAjouterGroupEnStage(true)}
-          className=" bg-green-500 font-bold hover:cursor-pointer text-white py-2 px-4 rounded my-5"
-        >
-          <FontAwesomeIcon className="mr-2" icon={faPlus} />
-          Ajouter
-        </button>
+      {/* Add Group Form */}
+      <div className="bg-white shadow-lg rounded-xl p-8 my-8 border border-gray-200 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-blue-600 mb-6 flex items-center gap-2">
+          <FontAwesomeIcon icon={faPlus} className="text-green-500" />
+          Ajouter un groupe en stage
+        </h2>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <select
+              name="groupId"
+              value={formAjouterGroupeEnStage.groupId}
+              onChange={handleChange}
+              className="bg-gray-50 px-4 py-2 rounded border border-gray-300 text-gray-900 w-full lg:w-1/2"
+            >
+              <option value="">Choisir le groupe</option>
+              {groupes &&
+                groupes.map((groupe) => (
+                  <option key={groupe.id} value={groupe.id}>
+                    {groupe.code_group}
+                  </option>
+                ))}
+            </select>
+            <input
+              type="date"
+              name="date_start"
+              value={formAjouterGroupeEnStage.date_start}
+              onChange={handleChange}
+              className="bg-gray-50 px-4 py-2 rounded border border-gray-300 text-gray-900 w-full lg:w-1/4"
+              placeholder="Date début"
+            />
+            <input
+              type="date"
+              name="date_fin"
+              value={formAjouterGroupeEnStage.date_fin}
+              onChange={handleChange}
+              className="bg-gray-50 px-4 py-2 rounded border border-gray-300 text-gray-900 w-full lg:w-1/4"
+              placeholder="Date fin"
+            />
+          </div>
+          {errors && <div className="text-red-500 font-semibold">{errors}</div>}
+          <Button
+            label="Ajouter"
+            onClick={handleAjoouterGroupeEnStage}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded shadow w-fit self-end"
+          />
+        </div>
       </div>
 
-      <div className="bg-gray-300  p-10 rounded m-5">
-        <h2 className="text-xl font-bold mb-5">
-          <FontAwesomeIcon className="text-blue-500 mr-3 " icon={faList} />
-          La liste des groupes en stage
-        </h2>
-        <div className="flex">
+      {/* Search and List Section */}
+      <div className="bg-white shadow-lg rounded-xl p-8 my-8 border border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h2 className="text-xl font-bold text-blue-600 flex items-center gap-2">
+            <FontAwesomeIcon icon={faList} className="text-blue-400" />
+            Liste des groupes en stage
+          </h2>
           <Input
-            placeholder="Enter le code groupe..."
-            className="!w-[500px] bg-white"
+            placeholder="Rechercher un groupe..."
+            className="!w-[300px] bg-gray-100 border border-gray-300 rounded px-3 py-2"
+            value={valueInputSearch}
+            onChange={handleSearch}
             type="text"
             name="search"
             id="search"
-            value=""
-            onChange={() => {}}
           />
-          <Button label="Chercher" />
-          <div className="ml-auto">
-            <select
-              name=""
-              id=""
-              className=" bg-white px-10 py-2 rounded text-xl mx-3"
-              onChange={handleFilterByFilier}
-            >
-              <option value="">Filiter par filiére</option>
-
-              {filiers &&
-                filiers.map((filier) => {
-                  return (
-                    <option
-                      onKeyDown={filier.id}
-                      value={filier.id}
-                      key={filier.id}
-                    >
-                      {filier.label}
-                    </option>
-                  );
-                })}
-            </select>
-          </div>
         </div>
-        <div className="py-5">
-          {groupsEnStageAfterFilter &&
-            groupsEnStageAfterFilter.map((stage) => {
-              return (
-                <div
-                  key={stage.id}
-                  className="flex justify-between items-center p-5 rounded-2xl bg-gray-400 my-3 lg:px-20 "
-                >
-                  <p className="min-w-[300px] text-center py-2 rounded text-xl bg-white">
-                    {stage.group.code_group}
-                  </p>
-                  <p className=" text-xl">
-                    Date en début :{" "}
-                    <span>
-                      {new Date(stage.date_start).toLocaleDateString()}
-                    </span>
-                  </p>
-                  <p className=" text-xl">
-                    Date en fin :{" "}
-                    <span>{new Date(stage.date_fin).toLocaleDateString()}</span>
-                  </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {groupsEnStageAfterFilter && groupsEnStageAfterFilter.length > 0 ? (
+            groupsEnStageAfterFilter.map((stage) => (
+              <div
+                key={stage.id}
+                className="flex flex-col gap-2 p-6 rounded-xl bg-blue-50 border border-blue-200 shadow hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <FontAwesomeIcon icon={faPeopleGroup} className="text-blue-500 text-xl" />
+                  <span className="font-semibold text-lg text-blue-800">{stage.group.code_group}</span>
                 </div>
-              );
-            })}
+                <div className="flex flex-wrap gap-4 text-gray-700">
+                  <span>
+                    <span className="font-semibold">Date début:</span> {new Date(stage.date_start).toLocaleDateString()}
+                  </span>
+                  <span>
+                    <span className="font-semibold">Date fin:</span> {new Date(stage.date_fin).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 py-10 text-lg">
+              Aucun groupe en stage trouvé.
+            </div>
+          )}
         </div>
       </div>
-
-      {dipslayFormAjouterGroupEnStage && (
-        <div className=" bg-gray-500/25 w-full h-[100%] flex justify-center items-center absolute top-0 left-0">
-          <div className="bg-white relative w-[700px] min-h-[45vh] rounded shadow-2xl p-10">
-            <FontAwesomeIcon
-              onClick={() => setDipslayFormAjouterGroupEnStage(false)}
-              icon={faClose}
-              className=" absolute right-10 top-10 text-3xl hover:cursor-pointer"
-            />
-            <h1 className="text-4xl font-bold text-blue-500 text-center my-5 ">
-              Ajouter groupe en stage{" "}
-            </h1>
-            {errors && (
-              <p className="text-center py-3 px-5 bg-red-200 rounded text-red-500">
-                {errors}
-              </p>
-            )}
-            <div>
-              <label htmlFor="">Groupe</label> <br />
-              <select
-                name="groupId"
-                id=""
-                value={formAjouterGroupeEnStage.groupId}
-                className="w-full text-xl !bg-gray-200  py-2 rounded "
-                onChange={handleChange}
-              >
-                <option value="">Choix le groupe</option>
-                {groupes &&
-                  groupes.map((groupe) => (
-                    <option value={groupe.id}>{groupe.code_group}</option>
-                  ))}
-              </select>
-            </div>
-
-            <label htmlFor="">Date de debut</label>
-            <Input
-              name="date_start"
-              type="date"
-              value={formAjouterGroupeEnStage.date_start}
-              onChange={handleChange}
-              className="!bg-gray-200 text-xl"
-              id="date_start"
-              placeholder=""
-            />
-            <label htmlFor="">Date de fin</label>
-            <Input
-              name="date_fin"
-              type="date"
-              value={formAjouterGroupeEnStage.date_fin}
-              onChange={handleChange}
-              className="!bg-gray-200 text-xl"
-              id="date_fin"
-              placeholder=""
-            />
-
-            <div className="text-center">
-              <Button
-                label="Ajouter"
-                onClick={handleAjoouterGroupeEnStage}
-                className=" bg-green-500 w-[200px] my-5 font-bold hover:cursor-pointer text-white py-2 px-4 rounded "
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

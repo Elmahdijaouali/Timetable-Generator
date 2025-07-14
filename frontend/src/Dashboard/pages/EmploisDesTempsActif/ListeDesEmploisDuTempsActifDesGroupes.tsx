@@ -68,7 +68,7 @@ export default function ListeDesEmploisDuTempsActifDesGroupes() {
         setTimetableActiveForGroupsFilter(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 
@@ -114,17 +114,18 @@ export default function ListeDesEmploisDuTempsActifDesGroupes() {
               <option value="">Filiter par filiére</option>
 
               {filiers &&
-                filiers.map((filier) => {
-                  return (
-                    <option
-                      onKeyDown={filier.id}
-                      value={filier.code_branch}
-                      key={filier.id}
-                    >
-                      {filier.label}
-                    </option>
-                  );
-                })}
+                filiers
+                  .filter(filier => timetablesActiveForGroups.some(groupe => groupe.code_branch === filier.code_branch))
+                  .map((filier) => {
+                    return (
+                      <option
+                        value={filier.code_branch}
+                        key={filier.id}
+                      >
+                        {filier.label}
+                      </option>
+                    );
+                  })}
             </select>
           </div>
         </div>

@@ -64,6 +64,7 @@ function App() {
         }
         
         {/* <Route path="/" element={<Login />} /> */}
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="administrateur" element={<Layout />}>
           <Route  path="dashboard"  >
@@ -93,14 +94,12 @@ function App() {
           <Route path="historique-emplois-du-temps-des-salles" element={<HistoriqueEmploisDuTempsDesSalles/>} />
           <Route  path="parameters">
               <Route index element={<Parameter />}/>
-              <Route path="groupes-en-stage" >
-                  <Route  index  element={<GroupesEnStage />} />
-              </Route>
+              <Route path="groupes-en-stage" element={<GroupesEnStage />} />
               <Route path="formateurs-no-disponible" element={<FormateursNoDisponbile />} />
               <Route path="salles-no-disponible" element={<SallesNoDisponbile/> } />
               <Route path="persenaliser-les-nomber-d-heures/:groupeId" element={<PersenaliserLesNombresHeuresParSemaineDeGroupe />} />
               <Route path="liste-des-groupes-pour-persenaliser-nombers-heures-par-semaine" element={<ListeDesGroupesPourPersenaliserLesNombresHeuresParSemaine />}/>
-              <Route path="liste-des-emplois-du-temps-en-année" element={<ListeEmploisDuTempsEnAnnee />} />
+              <Route path="liste-emplois-du-temps-en-annee" element={<ListeEmploisDuTempsEnAnnee />} />
               <Route path="afficher-emploi-du-temps-de-formateur-en-annee/:mle_formateur" element={<AfficherEmploiDuTempsDeFormateurEnAnnee/>} />
               <Route path="liste-des-groupes-pour-persenaliser-nombers-heures-par-semaine-par-fuision" element={<ListeDesFuision />}/>
               <Route path="persenaliser-les-nomber-d-heures-de-fuision/:fuisionId" element={<PersenaliserLesNombresHeuresParSemaineDeFuision />} />

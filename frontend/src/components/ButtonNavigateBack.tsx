@@ -10,11 +10,11 @@ export default function ButtonNavigateBack() {
   };
   return (
     <button
-      className=" bg-gray-500 px-5 py-2 rounded shadow text-white hover:cursor-pointer"
+      className="bg-gray-500 hover:bg-gray-600 px-5 py-2 rounded shadow text-white hover:cursor-pointer transition-colors"
       onClick={handleClick}
     >
       <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-      Routern
+      Retour
     </button>
   );
 }

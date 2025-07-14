@@ -11,6 +11,13 @@ interface Module {
   module_label: string;
   is_started: boolean;
   nbr_hours_remote_session_in_week: number;
+  validate_efm?: boolean;
+  mhp_realise?: number;
+  mhsyn_realise?: number;
+  mhp_s1?: number;
+  mhp_s2?: number;
+  mhsyn_s1?: number;
+  mhsyn_s2?: number;
 }
 
 interface FuisionWithModules {
@@ -34,7 +41,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
         setFuisionWithModules(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -52,7 +59,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
 
       if (res && res.data) {
         setMessageSuccess(res.data);
-        console.log(res);
+        // console.log(res);
         fetchData();
       }
     } catch (err: any) {
@@ -88,7 +95,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
         fetchData();
       }
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -125,7 +132,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
                 return (
                   <div
                     key={module.moduleId}
-                    className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 "
+                    className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 border border-gray-300"
                   >
                     <p className="text-xl">{module.module_label}</p>
                     <div className="flex w-[30%] justify-between">
@@ -224,7 +231,7 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
                 return (
                   <div
                     key={module.moduleId}
-                    className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 "
+                    className="flex justify-between items-center p-5 rounded-2xl bg-gray-300 my-3 lg:px-20 border border-gray-300"
                   >
                     <p className="text-xl">{module.module_label}</p>
                     <div className="flex w-[30%] justify-between">
@@ -294,6 +301,113 @@ export default function PersenaliserLesNombresHeuresParSemaineDeFuision() {
             ).length == 0 && (
               <div>
                 <p className="text-center my-10">No avoir Les auters modules</p>
+              </div>
+            )}
+        </div>
+
+        <h2 className="text-2xl my-5 font-bold text-green-600">
+          Les modules finis
+        </h2>
+        <div>
+          {fuisionWithModules.modules &&
+            fuisionWithModules.modules
+              .filter((module) => module.validate_efm === true)
+              .map((module) => {
+                return (
+                  <div
+                    key={module.moduleId}
+                    className="flex justify-between items-center p-5 rounded-2xl bg-green-100 border-2 border-green-300 my-3 lg:px-20 "
+                  >
+                    <div className="flex items-center">
+                      <p className="text-xl font-semibold text-green-800">{module.module_label}</p>
+                      <span className="ml-3 px-2 py-1 bg-green-500 text-white text-sm rounded-full">
+                        Terminé
+                      </span>
+                    </div>
+                    <div className="flex w-[30%] justify-between">
+                      <div>
+                        <label htmlFor="" className="mr-2 font-semibold text-green-700">
+                          à distance{" "}
+                        </label>
+                        <input
+                          type="number"
+                          value={module.nbr_hours_remote_session_in_week}
+                          className="w-[60px] p-1 rounded bg-white border-green-300"
+                          onChange={(e) =>
+                            handleEditNbrHoursInWeekRemoteForModule(e, module)
+                          }
+                          step={2.5}
+                          min={0}
+                          max={15}
+                          disabled={true}
+                        />
+                      </div>
+
+                      <div className="flex w-[50%] justify-between">
+                        <div className="flex items-center">
+                          <label
+                            htmlFor={
+                              "stateModule" + module.module_label + "actif"
+                            }
+                            className="mr-2 font-semibold text-green-700"
+                          >
+                            actif
+                          </label>
+                          <input
+                            type="radio"
+                            onClick={() =>
+                              handleEditStateModule(
+                                fuisionId,
+                                module.moduleId,
+                                "actif"
+                              )
+                            }
+                            checked={module.is_started == true}
+                            name={"stateModule" + module.moduleId}
+                            id={"stateModule" + module.module_label}
+                            className=" p-1 w-[25px] h-[25px] bg-white border-green-300"
+                            disabled={true}
+                          />
+                        </div>
+
+                        <div className="flex items-center ">
+                          <label
+                            htmlFor={
+                              "stateModule" + module.module_label + "no-actif"
+                            }
+                            className="mr-2 font-semibold text-green-700"
+                          >
+                            non actif{" "}
+                          </label>
+                          <input
+                            type="radio"
+                            onClick={() =>
+                              handleEditStateModule(
+                                fuisionId,
+                                module.moduleId,
+                                "non-actif"
+                              )
+                            }
+                            checked={module.is_started == false}
+                            name={"stateModule" + module.moduleId}
+                            id={
+                              "stateModule" + module.module_label + "no-actif"
+                            }
+                            className=" p-1  w-[25px] h-[25px]  bg-white border-green-300"
+                            disabled={true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          {fuisionWithModules.modules &&
+            fuisionWithModules.modules.filter(
+              (module) => module.validate_efm === true
+            ).length == 0 && (
+              <div>
+                <p className="text-center my-10 text-green-600">Aucun module terminé</p>
               </div>
             )}
         </div>

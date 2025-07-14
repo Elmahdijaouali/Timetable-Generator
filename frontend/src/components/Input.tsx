@@ -25,7 +25,7 @@ export default function Input({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`block w-full px-3 lg:text-xl py-2 rounded placeholder:text-gray-600 bg-gray-200 ${className}`}
+      className={`block w-full px-3 lg:text-xl py-2 rounded-lg placeholder:text-gray-500 bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${className}`}
     />
   );
 }

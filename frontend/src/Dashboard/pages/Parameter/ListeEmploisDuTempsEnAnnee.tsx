@@ -47,7 +47,7 @@ export default function ListeEmploisDuTempsEnAnnee() {
         setListeEmploisDuTempsEnAnneeFilter(res.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log statements for production
     }
   };
 

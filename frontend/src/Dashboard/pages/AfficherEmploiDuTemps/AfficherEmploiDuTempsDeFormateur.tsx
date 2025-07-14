@@ -53,7 +53,6 @@ export default function AfficherEmploiDuTempsDeFormateur() {
     fetchData();
   }, [mleFormateur]);
 
-  console.log("formaeur timetable", formateurTimetable);
   return (
     <div className="lg:w-[93%] mx-auto  h-full lg:px-10 lg:py-5  p-5 ">
       <div className="flex justify-between">

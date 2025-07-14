@@ -17,8 +17,10 @@ interface TimetableSalleData {
   nbr_hours_in_week: number;
 }
 
+// Add onProgress callback for UI progress updates
 export const telechargeToutLesEmploisActifDesSallesPngSurZip = async (
-  timetablesActiveForSalles: TimetableActive[]
+  timetablesActiveForSalles: TimetableActive[],
+  onProgress?: (current: number, total: number) => void
 ) => {
   const zip = new JSZip();
 
@@ -32,7 +34,8 @@ export const telechargeToutLesEmploisActifDesSallesPngSurZip = async (
   document.body.appendChild(container);
 
   const randStr = Math.random().toString(36).substr(2, 9);
-  for (const salle of timetablesActiveForSalles) {
+  for (let i = 0; i < timetablesActiveForSalles.length; i++) {
+    const salle = timetablesActiveForSalles[i];
     // Get full data
     const { data: timetableSalle }: { data: TimetableSalleData } =
       await api.get(`/classrooms-timetable/${salle.id}`);
@@ -57,6 +60,7 @@ export const telechargeToutLesEmploisActifDesSallesPngSurZip = async (
     const canvas = await html2canvas(wrapper, {
       useCORS: true,
       scale: 2, // for high-res PNG
+      backgroundColor: "#fff",
     });
 
     const blob: Blob | null = await new Promise((resolve) =>
@@ -73,22 +77,17 @@ export const telechargeToutLesEmploisActifDesSallesPngSurZip = async (
     // Clean up
     root.unmount();
     container.removeChild(wrapper);
+
+    // Progress callback
+    if (onProgress) onProgress(i + 1, timetablesActiveForSalles.length);
+
+    // Yield to the browser to keep UI responsive
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
   document.body.removeChild(container); // remove the main container
 
   // Download ZIP
   const zipBlob = await zip.generateAsync({ type: "blob" });
-
-  saveAs(
-    zipBlob,
-    `emplois-du-temps-des-salles${
-      new Date().toISOString().split("T")[0]
-    }--${Math.random().toString(36).substr(2, 9)}.zip`
-  );
-
-  handleNotification(
-    "Téléchargement",
-    "seccès téléchargement des emlpois du temps des salles!"
-  );
+  saveAs(zipBlob, "emplois-du-temps-salles.zip");
 };

@@ -39,8 +39,8 @@ export default function Register() {
   };
 
   return (
-    <div className="w-full h-[100vh] flex justify-center items-center ">
-      <div className=" lg:w-[80%] lg:h-[80vh]  w-[90%] h-[90vh]  flex  rounded shadow-2xl shadow-gray-400 border-gray-600">
+    <div className="w-full h-[100vh] flex justify-center items-center bg-gray-50">
+      <div className="lg:w-[80%] lg:h-[80vh] w-[90%] h-[90vh] flex rounded shadow-2xl shadow-gray-400 border-gray-600 bg-white">
         <div className="w-[50%] bg-gray-300 p-10 flex justify-center items-center h-full">
           <div className="mb-30 h-fit">
             <img
@@ -48,17 +48,17 @@ export default function Register() {
               src="./logo.png"
               alt=""
             />
-            <h1 className="lg:text-5xl text-xl uppercase text-center font-semibold">
+            <h1 className="lg:text-5xl text-xl uppercase text-center font-semibold text-gray-900">
               Ista Cité De L'air
             </h1>
             <h1 className="text-blue-500 lg:text-4xl text-xl lg:my-10 my-4 font-bold">
               Générer Les Emplois Du Temps
             </h1>
-            <div className="flex  justify-center">
+            <div className="flex justify-center">
               <NavLink
                 to={"/"}
                 className={
-                  " bg-blue-500 lg:py-3 py-2   px-10 rounded-md text-white"
+                  "bg-blue-500 hover:bg-blue-600 lg:py-3 py-2 px-10 rounded-md text-white transition-colors"
                 }
               >
                 Login
@@ -66,43 +66,41 @@ export default function Register() {
             </div>
           </div>
         </div>
-        <div className="w-[50%] flex justify-between items-center h-full ">
-          <div className="lg:w-[65%] lg:mt-10  w-[80%] h-[90%] mx-auto p-5  rounded-xl  ">
-            <h2 className="lg:text-5xl text-4xl font-bold text-center ">
-              Register
-            </h2>
+        <div className="w-[50%] flex justify-between items-center h-full bg-white">
+          <div className="lg:w-[65%] w-[90%] mx-auto p-5 rounded-xl lg:h-[60%]">
+            <h2 className="lg:text-5xl text-4xl font-bold text-center text-gray-900">Register</h2>
             <form action="" className="mt-5">
               {errors && (
-                <p className="text-red-500 text-center bg-red-200 p-2 rounded">
+                <p className="text-red-500 text-center bg-red-200 p-2 rounded border border-red-300">
                   {errors}
                 </p>
               )}
               <div className="lg:my-5">
-                <label htmlFor="">Nom Complet</label>
+                <label htmlFor="" className="text-gray-700 font-medium">Nom et prénom</label>
                 <Input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Enter nom complet"
+                  placeholder="Enter your name"
                   id="name"
                   className="w-full"
                 />
               </div>
               <div className="lg:my-5">
-                <label htmlFor="">Email</label>
+                <label htmlFor="" className="text-gray-700 font-medium">Email</label>
                 <Input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter e-mail"
+                  placeholder="Enter your Email"
                   id="email"
                   className="w-full"
                 />
               </div>
               <div className="lg:my-5">
-                <label htmlFor="">Password</label>
+                <label htmlFor="" className="text-gray-700 font-medium">Password</label>
                 <Input
                   type="password"
                   name="password"
@@ -114,20 +112,20 @@ export default function Register() {
                 />
               </div>
               <div className="lg:my-5">
-                <label htmlFor="">Password Confirmation</label>
+                <label htmlFor="" className="text-gray-700 font-medium">Confirm Password</label>
                 <Input
                   type="password"
                   name="passwordConfirmation"
                   value={formData.passwordConfirmation}
                   onChange={handleChange}
-                  placeholder="Enter your password confirmation"
+                  placeholder="Confirm your password"
                   id="passwordConfirmation"
                   className="w-full"
                 />
               </div>
               <button
                 onClick={handleRegister}
-                className="text-center bg-blue-500 text-white lg:font-bold hover:cursor-pointer  shadow-2xl shadow-blue-200 px-5  text-xl rounded-full w-full my-5 lg:py-3 py-2  "
+                className="text-center bg-blue-500 hover:bg-blue-600 text-white lg:font-bold hover:cursor-pointer shadow-2xl shadow-blue-200 px-5 text-xl rounded-full w-full my-5 lg:py-3 py-2 transition-colors"
               >
                 Register
               </button>

@@ -1,49 +1,69 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faDashboard } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
-import PopupDeTelechargement from "../components/PopupDeTelechargement";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import ButtonTelechargementEmploisActif from "../components/ButtonTelechargementEmploisActif";
 import { telechargeToutLesEmploisActifDesGroupesPngSurZip } from "../utils/telechargeToutLesEmploisActifDesGroupesPngSurZip";
 import api from "../api/apiConfig";
 import { telechargeToutLesEmploisActifDesFormateursPngSurZip } from "../utils/telechargeToutLesEmploisActifDesFormateursPngSurZip";
 import { telechargeToutLesEmploisActifDesSallesPngSurZip } from "../utils/telechargeToutLesEmploisActifDesSallesPngSurZip";
+import { ExportContext } from "../contextApi/ExportContext";
+
 
 export default function Dashboard() {
-  const [afficherPopup, setAfficherPopup] = useState(false);
-  const [valuePopup, setValuePopup] = useState("png");
-  const [handleLogicTelechargement, setHandleLogicTelechargement] = useState(
-    () => () => {}
-  );
   const [timetablesActiveForGroups, setTimetableActiveForGroups] = useState([]);
   const [timetableActiveFormateurs , setTimetableActiveFormateurs ] = useState([])
   const [timetableActiveSalles , setTimetableActiveSalles ] = useState([])
- 
-  const handleTelechargementDesEmploisDuTempsActifDesGroupes = () => {
-    setAfficherPopup(true);
-    setHandleLogicTelechargement(() => () => {
-      if (valuePopup == "png") {
-        telechargeToutLesEmploisActifDesGroupesPngSurZip(timetablesActiveForGroups )
-      }
-    });
+
+  const { group, formateur, salle, startExport, updateExport, finishExport } = useContext(ExportContext);
+
+  const handleTelechargementDesEmploisDuTempsActifDesGroupes = async (format: string) => {
+    if (format === "png") {
+      startExport("group", timetablesActiveForGroups.length);
+      await telechargeToutLesEmploisActifDesGroupesPngSurZip(
+        timetablesActiveForGroups,
+        (current: number, total: number) => {
+          updateExport("group", current, total);
+        }
+      );
+      finishExport("group");
+    } else if (format === "excel") {
+      window.open("/timetables/groups/excel", "_blank");
+    } else if (format === "pdf") {
+      window.open("/timetables/groups/pdf", "_blank");
+    }
   };
 
-  const handleTelechargementDesEmploisDuTempsActifDesFormateurs = () => {
-    setAfficherPopup(true);
-    setHandleLogicTelechargement(() => () => {
-       if( valuePopup == 'png'){
-          telechargeToutLesEmploisActifDesFormateursPngSurZip(timetableActiveFormateurs)
-       }
-    });
+  const handleTelechargementDesEmploisDuTempsActifDesFormateurs = async (format: string) => {
+    if (format === "png") {
+      startExport("formateur", timetableActiveFormateurs.length);
+      await telechargeToutLesEmploisActifDesFormateursPngSurZip(
+        timetableActiveFormateurs,
+        (current: number, total: number) => {
+          updateExport("formateur", current, total);
+        }
+      );
+      finishExport("formateur");
+    } else if (format === "excel") {
+      window.open("/timetable-formateurs/excel", "_blank");
+    } else if (format === "pdf") {
+      window.open("/timetable-formateurs/pdf", "_blank");
+    }
   };
 
-  const handleTelechargementDesEmploisDuTempsActifDesSalles = () => {
-    setAfficherPopup(true);
-    setHandleLogicTelechargement(() => () => {
-       if( valuePopup == 'png'){
-          telechargeToutLesEmploisActifDesSallesPngSurZip(timetableActiveSalles)
-       }
-    });
+  const handleTelechargementDesEmploisDuTempsActifDesSalles = async (format: string) => {
+    if (format === "png") {
+      startExport("salle", timetableActiveSalles.length);
+      await telechargeToutLesEmploisActifDesSallesPngSurZip(
+        timetableActiveSalles,
+        (current: number, total: number) => {
+          updateExport("salle", current, total);
+        }
+      );
+      finishExport("salle");
+    } else {
+      alert("Export Excel/PDF pour les salles n'est pas encore implémenté.");
+    }
   };
 
   const fetchData = async () => {
@@ -72,21 +92,19 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  console.log(timetableActiveFormateurs)
-
   return (
-    <div className="lg:w-[98%] h-full px-10 py-5">
-      <h1 className="lg:text-3xl font-bold">
+    <div className="lg:w-[98%] h-fit px-10 py-5" >
+      <h1 className="lg:text-3xl font-bold text-gray-900 mb-6">
         <FontAwesomeIcon className="mr-2 text-blue-500" icon={faDashboard} />
         Tableau de bord
       </h1>
       <div className="py-5 xl:w-[78] lg:w-[83%] flex gap-10 justify-between">
         <NavLink
           to={"/administrateur/dashboard/emplois-du-temps-actif/groupes"}
-          className="w-[33%] flex hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400  bg-gray-300 text-black lg:p-10 p-5 rounded-2xl"
+          className="w-[33%] flex hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400 bg-gray-300 text-black lg:p-10 p-5 rounded-2xl transition-colors"
         >
           <FontAwesomeIcon
-            className="text-center lg:text-4xl text-2xl mx-auto "
+            className="text-center lg:text-4xl text-2xl mx-auto text-blue-500"
             icon={faCalendarDays}
           />
           <p className="lg:text-xl font-semibold text-center">
@@ -95,22 +113,22 @@ export default function Dashboard() {
         </NavLink>
         <NavLink
           to={"/administrateur/dashboard/emplois-du-temps-actif/formateurs"}
-          className="w-[33%]  flex hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400  bg-gray-300 text-black lg:p-10 p-5 rounded-2xl"
+          className="w-[33%] flex hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400 bg-gray-300 text-black lg:p-10 p-5 rounded-2xl transition-colors"
         >
           <FontAwesomeIcon
-            className="text-center lg:text-4xl text-2xl mx-auto "
+            className="text-center lg:text-4xl text-2xl mx-auto text-blue-500"
             icon={faCalendarDays}
           />
-          <p className="lg:text-xl  font-semibold text-center">
+          <p className="lg:text-xl font-semibold text-center">
             Les emplois du temps des formateurs actif
           </p>
         </NavLink>
         <NavLink
           to={"/administrateur/dashboard/emplois-du-temps-actif/salles"}
-          className="w-[33%] flex   hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400  bg-gray-300 text-black lg:p-10 p-5 rounded-2xl"
+          className="w-[33%] flex hover:shadow-2xl hover:cursor-pointer hover:bg-gray-400 bg-gray-300 text-black lg:p-10 p-5 rounded-2xl transition-colors"
         >
           <FontAwesomeIcon
-            className="text-center lg:text-4xl text-2xl mx-auto "
+            className="text-center lg:text-4xl text-2xl mx-auto text-blue-500"
             icon={faCalendarDays}
           />
           <p className="lg:text-xl font-semibold text-center">
@@ -121,26 +139,61 @@ export default function Dashboard() {
 
       <div className="pb-5 xl:w-[78] lg:w-[83%] flex gap-10 justify-between">
         <ButtonTelechargementEmploisActif
-          label="Exporter les emplois du temps actif des groupes"
-          onClick={handleTelechargementDesEmploisDuTempsActifDesGroupes}
+          label="Exporter tous les emplois du temps des groupes"
+          onExport={handleTelechargementDesEmploisDuTempsActifDesGroupes}
+          availableFormats={['png', 'excel', 'pdf']}
         />
         <ButtonTelechargementEmploisActif
-          label="Exporter les emplois du temps actif des formateurs"
-          onClick={handleTelechargementDesEmploisDuTempsActifDesFormateurs}
+          label="Exporter tous les emplois du temps des formateurs"
+          onExport={handleTelechargementDesEmploisDuTempsActifDesFormateurs}
+          availableFormats={['png', 'excel', 'pdf']}
         />
         <ButtonTelechargementEmploisActif
-          label="Exporter les emplois du temps actif des salles"
-          onClick={handleTelechargementDesEmploisDuTempsActifDesSalles}
+          label={<>Exporter tous les emplois du temps<br />des salles</>}
+          onExport={handleTelechargementDesEmploisDuTempsActifDesSalles}
+          availableFormats={['png']}
         />
       </div>
+      {group.running && (
+        <div className="mt-4 w-full max-w-md mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-blue-600 h-4 rounded-full transition-all"
+              style={{ width: `${(group.current / group.total) * 100}%` }}
+            />
+          </div>
+          <div className="text-sm text-gray-700 mt-1 text-center">
+            {group.current} / {group.total} groupes traités
+          </div>
+        </div>
+      )}
+      {formateur.running && (
+        <div className="mt-4 w-full max-w-md mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-blue-600 h-4 rounded-full transition-all"
+              style={{ width: `${(formateur.current / formateur.total) * 100}%` }}
+            />
+          </div>
+          <div className="text-sm text-gray-700 mt-1 text-center">
+            {formateur.current} / {formateur.total} formateurs traités
+          </div>
+        </div>
+      )}
+      {salle.running && (
+        <div className="mt-4 w-full max-w-md mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-blue-600 h-4 rounded-full transition-all"
+              style={{ width: `${(salle.current / salle.total) * 100}%` }}
+            />
+          </div>
+          <div className="text-sm text-gray-700 mt-1 text-center">
+            {salle.current} / {salle.total} salles traitées
+          </div>
+        </div>
+      )}
 
-      <PopupDeTelechargement
-        afficherPopup={afficherPopup}
-        setAfficherPopup={setAfficherPopup}
-        valuePopup={valuePopup}
-        setValuePopup={setValuePopup}
-        handleLogicTelechargement={handleLogicTelechargement}
-      />
     </div>
   );
 }

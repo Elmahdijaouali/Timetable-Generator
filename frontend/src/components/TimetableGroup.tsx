@@ -39,40 +39,40 @@ export default function TimetableGroup({
     return null;
   }
   return (
-    <div ref={timetableRef} className="p-5">
-      <h1 className="text-center text-2xl font-bold">EMPLOI DU TEMPS</h1>
+    <div ref={timetableRef} className="p-5 rounded-lg shadow-md" style={{ background: '#fff' }}>
+      <h1 className="text-center text-2xl font-bold" style={{ color: '#111827' }}>EMPLOI DU TEMPS</h1>
       <div className="flex justify-between my-5">
         <div>
-          <p>
+          <p style={{ color: '#374151' }}>
             EFP :{" "}
-            <span className=" uppercase font-bold" style={{ color: "blue" }}>
+            <span className="uppercase font-bold" style={{ color: '#2563eb' }}>
               ista cité de l'air
             </span>
           </p>
-          <p>
-            Filiére :{" "}
-            <span className=" font-bold" style={{ color: "blue" }}>
+          <p style={{ color: '#374151' }}>
+            Filière :{" "}
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               {timetableGroup?.code_branch}
             </span>
           </p>
-          <p>
+          <p style={{ color: '#374151' }}>
             Niveau :{" "}
-            <span className=" font-bold" style={{ color: "blue" }}>
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               {timetableGroup?.niveau}
             </span>
           </p>
         </div>
         <div>
-          <p>
+          <p style={{ color: '#374151' }}>
             Année de formation :
-            <span className=" font-bold" style={{ color: "blue" }}>
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               2024-2025
             </span>
           </p>
           <br />
-          <p>
+          <p style={{ color: '#374151' }}>
             Groupe :{" "}
-            <span className=" font-bold" style={{ color: "blue" }}>
+            <span className="font-bold" style={{ color: '#2563eb' }}>
               {timetableGroup?.groupe}{" "}
             </span>
           </p>
@@ -82,19 +82,11 @@ export default function TimetableGroup({
         <table className="w-full ">
           <thead>
             <tr>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"></th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                80:30-11:00
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                11:00-13:30
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                13:30-16:00
-              </th>
-              <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                16:00-18:30
-              </th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"> </th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">08:30-11:00</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">11:00-13:30</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">13:30-16:00</th>
+              <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">16:00-18:30</th>
             </tr>
           </thead>
           <tbody>
@@ -144,8 +136,8 @@ export default function TimetableGroup({
                   return (
                     <tr key={index}>
                       <td
+                        style={{ background: '#6b7280', color: '#fff' }}
                         className="lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"
-                        style={{ background: "gray" }}
                       >
                         {dayLabel}
                       </td>
@@ -156,17 +148,17 @@ export default function TimetableGroup({
               })}
           </tbody>
         </table>
-        <div className="flex justify-between">
-          <p>
-            Cet emploi du temps est valable _ partir du{" "}
-            <span className=" font-bold" style={{ color: "blue" }}>
+        <div className="flex justify-between mt-5">
+          <p style={{ color: '#374151' }}>
+            Cet emploi du temps est valable à partir du{" "}
+            <span style={{ color: '#2563eb', fontWeight: 700 }}>
               {timetableGroup.valid_form}
             </span>
           </p>
-          <p>
+          <p style={{ color: '#374151' }}>
             {" "}
             Nombre d'heures:{" "}
-            <span className=" font-bold " style={{ color: "blue" }}>
+            <span style={{ color: '#2563eb', fontWeight: 700 }}>
               {timetableGroup?.nbr_hours_in_week}
             </span>
           </p>
@@ -184,7 +176,7 @@ const RenderTimeShot = ({
   mergeSession: boolean;
 }) => {
   if (!session) {
-    return <td className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
+    return <td style={{ background: '#f9fafb' }} className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
   }
 
   return (
@@ -193,12 +185,12 @@ const RenderTimeShot = ({
       className="lg:px-5 py-2 px-3 text-center border w-[12%]"
       style={{ background: session.color }}
     >
-      <span className="font-semibold">{session.module}</span> <br />
-      <span className=" font-semibold  ">
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.module}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>
         {session.formateur.slice(session.formateur.indexOf(" "))}
       </span>{" "}
       <br />
-      <span className="font-semibold">{session.salle}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.salle}</span> <br />
     </td>
   );
 };

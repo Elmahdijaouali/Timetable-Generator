@@ -196,96 +196,44 @@ export default function AfficherEmploiDuTempsDeGroupe() {
           <table className="w-full ">
             <thead>
               <tr>
-                <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"></th>
-                <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                  80:30-11:00
-                </th>
-                <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                  11:00-13:30
-                </th>
-                <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                  13:30-16:00
-                </th>
-                <th className="bg-gray-400 lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">
-                  16:00-18:30
-                </th>
+                <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[12%]"></th>
+                <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">08:30-11:00</th>
+                <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">11:00-13:30</th>
+                <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">13:30-16:00</th>
+                <th style={{ background: '#9ca3af', color: '#fff' }} className="lg:px-5 lg:py-2 py-1 px-3 border w-[22%]">16:00-18:30</th>
               </tr>
             </thead>
             <tbody>
-              {timetableGroup.timetable &&
-               timetableGroup.timetable.map((day, index) => {
-                  const dayLabel = Object.keys(day)[0];
-                  const sessions = Object.values(day)[0];
-                  const mergeSession = false;
-
-                  // return (
-                  //   <tr key={index}>
-                  //     <td className=" lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"  style={{ background : 'gray'}}>
-                  //       {dayLabel}
-                  //     </td>
-                  //     {timeShots.map((timeshot, index) => {
-                  //       return (
-                  //         <RenderTimeShot
-                  //           key={index}
-                  //           mergeSession={mergeSession}
-                  //           dayData={sessions}
-                  //           timeshot={timeshot}
-                  //         />
-                  //       );
-                  //     })}
-                  //   </tr>
-                  // );
-                  return (() => {
-                    const renderCells = [];
-                    let skipNext = false;
-
-                    for (let i = 0; i < timeShots.length; i++) {
-                      if (skipNext) {
-                        skipNext = false;
-                        continue;
-                      }
-
-                      const timeshot = timeShots[i];
-                      const currentSession = sessions?.find(
-                        (s) => s.timeshot === timeshot
-                      );
-                      const nextSession = sessions?.find(
-                        (s) => s.timeshot === timeShots[i + 1]
-                      );
-
-                      let merge = false;
-                      if (
-                        currentSession &&
-                        nextSession &&
-                        currentSession.module === nextSession.module &&
-                        currentSession.salle === nextSession.salle
-                      ) {
-                        merge = true;
-                        skipNext = true;
-                      }
-
-                      renderCells.push(
-                        <RenderTimeShot
-                          key={i}
-                          session={currentSession}
-                          mergeSession={merge}
-                        />
-                      );
+              {timetableGroup.timetable && timetableGroup.timetable.map((day, index) => {
+                const dayLabel = Object.keys(day)[0];
+                const sessions = Object.values(day)[0];
+                return (() => {
+                  const renderCells = [];
+                  let skipNext = false;
+                  for (let i = 0; i < timeShots.length; i++) {
+                    if (skipNext) { skipNext = false; continue; }
+                    const timeshot = timeShots[i];
+                    const currentSession = sessions?.find((s) => s.timeshot === timeshot);
+                    const nextSession = sessions?.find((s) => s.timeshot === timeShots[i + 1]);
+                    let merge = false;
+                    if (currentSession && nextSession && currentSession.module === nextSession.module && currentSession.salle === nextSession.salle) {
+                      merge = true;
+                      skipNext = true;
                     }
-
-                    return (
-                      <tr key={index}>
-                        <td
-                          className="lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]"
-                          style={{ background: "gray" }}
-                        >
-                          {dayLabel}
-                        </td>
-                        {renderCells}
-                      </tr>
+                    renderCells.push(
+                      <RenderTimeShot key={i} session={currentSession} mergeSession={merge} />
                     );
-                  })();
-                })}
+                  }
+                  return (
+                    <tr key={index}>
+                      <td style={{ background: '#6b7280', color: '#fff' }} className="lg:px-5 lg:py-7 py-5 px-3 font-bold text-center border w-[12%]">
+                        {dayLabel}
+                      </td>
+                      {renderCells}
+                    </tr>
+                  );
+                })();
+              })}
             </tbody>
           </table>
           <div className="flex justify-between">
@@ -339,21 +287,13 @@ export default function AfficherEmploiDuTempsDeGroupe() {
 // };
 const RenderTimeShot = ({ session, mergeSession }) => {
   if (!session) {
-    return <td className="lg:px-5 py-2 px-3 text-center border w-[12%]"></td>;
+    return <td style={{ background: '#f9fafb' }} className="lg:px-5 py-2 px-3 text-center border w-[12%]" />;
   }
-
   return (
-    <td
-      colSpan={mergeSession ? 2 : 1}
-      className="lg:px-5 py-2 px-3 text-center border w-[12%]"
-      style={{ background: session.color }}
-    >
-      <span className="font-semibold">{session.module}</span> <br />
-      <span className=" font-semibold  ">
-        {session.formateur.slice(session.formateur.indexOf(" "))}
-      </span>{" "}
-      <br />
-      <span className="font-semibold">{session.salle}</span> <br />
+    <td colSpan={mergeSession ? 2 : 1} className="lg:px-5 py-2 px-3 text-center border w-[12%]" style={{ background: session.color }}>
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.module}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.formateur.slice(session.formateur.indexOf(" "))}</span> <br />
+      <span style={{ color: '#111827', fontWeight: 600 }}>{session.salle}</span> <br />
     </td>
   );
 };

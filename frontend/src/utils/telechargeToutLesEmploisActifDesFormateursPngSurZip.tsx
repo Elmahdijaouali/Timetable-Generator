@@ -18,7 +18,8 @@ interface TimetableFormateurData {
 }
 
 export const telechargeToutLesEmploisActifDesFormateursPngSurZip = async (
-  timetablesActiveForFormateurs: TimetableActive[]
+  timetablesActiveForFormateurs: TimetableActive[],
+  onProgress?: (current: number, total: number) => void
 ) => {
   const zip = new JSZip();
 
@@ -32,7 +33,8 @@ export const telechargeToutLesEmploisActifDesFormateursPngSurZip = async (
   document.body.appendChild(container);
 
   const randStr = Math.random().toString(36).substr(2, 9);
-  for (const formateur of timetablesActiveForFormateurs) {
+  for (let i = 0; i < timetablesActiveForFormateurs.length; i++) {
+    const formateur = timetablesActiveForFormateurs[i];
     // Get full data
     const { data: timetableFormateur }: { data: TimetableFormateurData } =
       await api.get(`/timetables/active/formateurs/${formateur.mle_formateur}`);
@@ -60,6 +62,7 @@ export const telechargeToutLesEmploisActifDesFormateursPngSurZip = async (
     const canvas = await html2canvas(wrapper, {
       useCORS: true,
       scale: 2,
+      backgroundColor: "#fff",
     });
 
     const blob: Blob | null = await new Promise((resolve) =>
@@ -76,6 +79,10 @@ export const telechargeToutLesEmploisActifDesFormateursPngSurZip = async (
     // Clean up
     root.unmount();
     container.removeChild(wrapper);
+
+    // Progress callback
+    if (onProgress) onProgress(i + 1, timetablesActiveForFormateurs.length);
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
   document.body.removeChild(container); // remove the main container

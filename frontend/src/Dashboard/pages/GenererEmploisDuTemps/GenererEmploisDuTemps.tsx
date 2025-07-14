@@ -5,6 +5,7 @@ import {
   faEdit,
   faCalendar,
   faSpinner,
+  faDownload,
 } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
 import ButtonTelechargementEmploisActif from "../../../components/ButtonTelechargementEmploisActif";
@@ -54,17 +55,45 @@ export default function GenererEmploisDuTemps() {
   const [timetableActiveSalles, setTimetableActiveSalles] = useState<
     TimetableSalle[]
   >([]);
+  const [deactivatedModules, setDeactivatedModules] = useState<any[]>([]);
 
   const handleGenerateEmploisDuTemps = async () => {
     try {
       setLoadingGenerate(true);
+      setDeactivatedModules([]);
+      
       const res = await api.post("/generate-timetable", {
         valide_a_partir_de: valide_a_partir_de,
       });
 
       if (res && res.data) {
+        // Check if there are deactivated modules in the response
+        if (res.data.groups && Array.isArray(res.data.groups)) {
+          const allDeactivatedModules = res.data.groups
+            .filter((group: any) => group.deactivatedModules && group.deactivatedModules.length > 0)
+            .flatMap((group: any) => 
+              group.deactivatedModules.map((module: any) => ({
+                ...module,
+                groupCode: group.groupCode
+              }))
+            );
+          
+          setDeactivatedModules(allDeactivatedModules);
+        }
+
+        let successMessage = res.data.message;
+        
+        // Add deactivated modules information to the success message
+        if (deactivatedModules.length > 0) {
+          successMessage += `\n\n⚠️ Modules désactivés pour résoudre les contraintes de planning:`;
+          deactivatedModules.forEach(module => {
+            successMessage += `\n• ${module.groupCode}: ${module.moduleLabel} (${module.hours} heures)`;
+          });
+          successMessage += `\n\nCes modules peuvent être réactivés ultérieurement.`;
+        }
+
         setAfficherPopupSuccess(true);
-        setMessageSuccess(res.data.message);
+        setMessageSuccess(successMessage);
         handleNotification(
           "Générate des emplois du temps",
           "succès générate des emplois du temps "
@@ -72,7 +101,6 @@ export default function GenererEmploisDuTemps() {
       }
       setLoadingGenerate(false);
     } catch (err: any) {
-      console.log(err);
       setLoadingGenerate(false);
       setAfficherPopupError(true);
       setErrors(err.response?.data.errors);
@@ -134,13 +162,11 @@ export default function GenererEmploisDuTemps() {
       setLoading(false);
     } catch (err: any) {
       setLoading(false);
-      console.log("err", err);
       if (err.response && err.response.data && err.response.data.errors) {
         setErrors(err.response.data.errors);
         setAfficherPopupError(true);
       }
 
-      console.log(err);
     } finally {
       if (fileinputRef.current) {
         fileinputRef.current.value = "";
@@ -166,7 +192,7 @@ export default function GenererEmploisDuTemps() {
         setTimetableActiveSalles(res3.data);
       }
     } catch (err) {
-      console.log(err);
+      // Removed console.log(err);
     }
   };
 
@@ -275,19 +301,35 @@ export default function GenererEmploisDuTemps() {
             </p>
           </NavLink>
         </div>
-        <div className="pb-5 xl:w-[78] lg:w-[83%] flex gap-10 justify-between">
-          <ButtonTelechargementEmploisActif
-            label="Exporter les emplois du temps actif des groupe"
-            onClick={handleTelechargementDesEmploisDuTempsActifDesGroupes}
-          />
-          <ButtonTelechargementEmploisActif
-            label="Exporter les emplois du temps actif des formateurs"
-            onClick={handleTelechargementDesEmploisDuTempsActifDesFormateurs}
-          />
-          <ButtonTelechargementEmploisActif
-            label="Exporter les emplois du temps actif des salles"
-            onClick={handleTelechargementDesEmploisDuTempsActifDesSalles}
-          />
+        {/* Export buttons section - improved style */}
+        <div className="pb-5 xl:w-[78] lg:w-[83%] grid grid-cols-1 md:grid-cols-3 gap-8 my-8">
+          <div className="flex flex-col items-center">
+            <button
+              onClick={handleTelechargementDesEmploisDuTempsActifDesGroupes}
+              className="w-full flex flex-col items-center justify-center bg-green-600 hover:bg-green-700 text-white p-8 rounded-2xl shadow transition-colors gap-4"
+            >
+              <FontAwesomeIcon icon={faDownload} className="text-4xl mb-2" />
+              <span className="text-lg font-semibold text-center">Exporter les emplois du temps actif des groupes</span>
+            </button>
+          </div>
+          <div className="flex flex-col items-center">
+            <button
+              onClick={handleTelechargementDesEmploisDuTempsActifDesFormateurs}
+              className="w-full flex flex-col items-center justify-center bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-2xl shadow transition-colors gap-4"
+            >
+              <FontAwesomeIcon icon={faDownload} className="text-4xl mb-2" />
+              <span className="text-lg font-semibold text-center">Exporter les emplois du temps actif des formateurs</span>
+            </button>
+          </div>
+          <div className="flex flex-col items-center">
+            <button
+              onClick={handleTelechargementDesEmploisDuTempsActifDesSalles}
+              className="w-full flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700 text-white p-8 rounded-2xl shadow transition-colors gap-4"
+            >
+              <FontAwesomeIcon icon={faDownload} className="text-4xl mb-2" />
+              <span className="text-lg font-semibold text-center">Exporter les emplois du temps actif des salles</span>
+            </button>
+          </div>
         </div>
       </div>
       <PopupDeTelechargement
